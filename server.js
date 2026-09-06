@@ -8,7 +8,7 @@ let tweets = [
     {
         id: "1",
         author: "user_1",
-        content: "First twit! #first",
+        content: "First tweet! #first",
         hashtags: ["#first"],
         createdAt: new Date().toISOString()
     }
@@ -21,7 +21,7 @@ app.get('/tweets', (req, res) => {
 app.get('/tweets/:id', (req, res) => {
     const tweet = tweets.find(t => t.id === req.params.id);
     if (!tweet) {
-        return res.status(404).json({ error: "Twit not found" });
+        return res.status(404).json({ error: "Tweet not found" });
     }
     res.status(200).json(tweet);
 });
@@ -50,7 +50,7 @@ app.put('/tweets/:id', (req, res) => {
     const tweetIndex = tweets.findIndex(t => t.id === req.params.id);
 
     if (tweetIndex === -1) {
-        return res.status(404).json({ error: "Twit not found" });
+        return res.status(404).json({ error: "Tweet not found" });
     }
 
     if (!author || !content) {
@@ -71,20 +71,20 @@ app.delete('/tweets/:id', (req, res) => {
     const tweetIndex = tweets.findIndex(t => t.id === req.params.id);
 
     if (tweetIndex === -1) {
-        return res.status(404).json({ error: "Твит не найден" });
+        return res.status(404).json({ error: "Tweet not found" });
     }
 
     const deletedTweet = tweets.splice(tweetIndex, 1);
-    res.status(200).json({ message: "Твит успешно удален", deleted: deletedTweet[0] });
+    res.status(200).json({ message: "Tweet successfully deleted", deleted: deletedTweet[0] });
 });
 
 app.use((req, res, next) => {
-    res.status(404).json({ error: "Маршрут не найден" });
+    res.status(404).json({ error: "Route not found" });
 });
 
 app.use((err, req, res, next) => {
     console.error(err.stack);
-    res.status(500).json({ error: "Внутренняя ошибка сервера" });
+    res.status(500).json({ error: "Server error" });
 });
 
 app.listen(port, () => {
