@@ -21,7 +21,7 @@ app.get('/tweets', (req, res) => {
 app.get('/tweets/:id', (req, res) => {
     const tweet = tweets.find(t => t.id === req.params.id);
     if (!tweet) {
-        return res.status(404).json({ error: "Твит не найден" });
+        return res.status(404).json({ error: "Twit not found" });
     }
     res.status(200).json(tweet);
 });
