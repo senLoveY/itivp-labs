@@ -1,16 +1,14 @@
-require('dotenv').config(); // Обязательно подключаем dotenv в самом начале!
+require('dotenv').config();
 const express = require('express');
-const { Tweet } = require('./models'); // Подключаем модель Sequelize
+const { Tweet } = require('./models');
 
 const app = express();
 const port = 3000;
 
 app.use(express.json());
 
-// 1. GET /tweets – получение всех твитов из БД
 app.get('/tweets', async (req, res) => {
     try {
-        // Получаем все записи, сортируем по дате создания (новые сверху)
         const tweets = await Tweet.findAll({
             order: [['createdAt', 'DESC']]
         });
@@ -21,7 +19,6 @@ app.get('/tweets', async (req, res) => {
     }
 });
 
-// 2. GET /tweets/:id – получение одного твита по ID
 app.get('/tweets/:id', async (req, res) => {
     try {
         const tweet = await Tweet.findByPk(req.params.id);
@@ -37,7 +34,6 @@ app.get('/tweets/:id', async (req, res) => {
     }
 });
 
-// 3. POST /tweets – создание нового твита в БД
 app.post('/tweets', async (req, res) => {
     try {
         const { author, content, hashtags } = req.body;
@@ -59,7 +55,6 @@ app.post('/tweets', async (req, res) => {
     }
 });
 
-// 4. PUT /tweets/:id – обновление твита
 app.put('/tweets/:id', async (req, res) => {
     try {
         const { author, content, hashtags } = req.body;
@@ -73,7 +68,6 @@ app.put('/tweets/:id', async (req, res) => {
             return res.status(400).json({ error: "The 'author' and 'content' fields are mandatory for update." });
         }
 
-        // Обновляем поля в базе данных
         await tweet.update({
             author,
             content,
@@ -87,7 +81,6 @@ app.put('/tweets/:id', async (req, res) => {
     }
 });
 
-// 5. DELETE /tweets/:id – удаление твита из БД
 app.delete('/tweets/:id', async (req, res) => {
     try {
         const tweet = await Tweet.findByPk(req.params.id);
@@ -96,7 +89,6 @@ app.delete('/tweets/:id', async (req, res) => {
             return res.status(404).json({ error: "Tweet not found" });
         }
 
-        // Удаляем запись из базы данных
         await tweet.destroy();
         
         res.status(200).json({ message: "Tweet successfully deleted", deleted: tweet });
@@ -106,12 +98,10 @@ app.delete('/tweets/:id', async (req, res) => {
     }
 });
 
-// Обработка несуществующих маршрутов (404)
 app.use((req, res, next) => {
     res.status(404).json({ error: "Route not found" });
 });
 
-// Глобальный обработчик ошибок
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).json({ error: "Server error" });
