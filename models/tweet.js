@@ -16,7 +16,8 @@ module.exports = (sequelize, DataTypes) => {
   Tweet.init({
     author: DataTypes.STRING,
     content: DataTypes.TEXT,
-    hashtags: DataTypes.JSONB
+    hashtags: DataTypes.JSONB,
+    likesCount: DataTypes.INTEGER 
   }, {
     sequelize,
     modelName: 'Tweet',
