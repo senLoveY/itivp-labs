@@ -1,11 +1,83 @@
 require('dotenv').config();
 const express = require('express');
-const { Tweet } = require('./models');
+const { Tweet, User, LoginLog } = require('./models');
+const authRoutes = require('./routes/auth');
+const { verifyToken, isAdmin } = require('./middleware/auth');
 
 const app = express();
 const port = 3000;
 
 app.use(express.json());
+
+app.use('/auth', authRoutes);
+
+app.get('/profile', verifyToken, async (req, res) => {
+    res.status(200).json({ 
+        message: "This is a protected profile route.",
+        user: req.user 
+    });
+});
+
+app.get('/admin/users', verifyToken, isAdmin, async (req, res) => {
+    try {
+        const users = await User.findAll({ attributes: ['id', 'email', 'role', 'createdAt'] });
+        res.status(200).json({
+            message: "Secret admin panel",
+            users
+        });
+    } catch (error) {
+        res.status(500).json({ error: "Error retrieving users" });
+    }
+});
+
+app.get('/admin/logs', verifyToken, isAdmin, async (req, res) => {
+    try {
+        const logs = await LoginLog.findAll({
+            order: [['createdAt', 'DESC']],
+            limit: 50
+        });
+        res.status(200).json({
+            message: "Login logs retrieved successfully",
+            logs
+        });
+    } catch (error) {
+        console.error("LOGS ERROR:", error);
+        res.status(500).json({ error: "Error retrieving logs" });
+    }
+});
+
+app.post('/admin/users/:id/ban', verifyToken, isAdmin, async (req, res) => {
+    try {
+        const { banReason } = req.body;
+        const targetUser = await User.findByPk(req.params.id);
+
+        if (!targetUser) return res.status(404).json({ error: "User not found" });
+        if (targetUser.role === 'admin') return res.status(403).json({ error: "You can't ban an admin!" });
+
+        await targetUser.update({ 
+            isBanned: true, 
+            banReason: banReason || 'Reason not specified' 
+        });
+
+        res.status(200).json({ message: `User ${targetUser.email} banned.` });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Server error during blocking" });
+    }
+});
+
+app.post('/admin/users/:id/unban', verifyToken, isAdmin, async (req, res) => {
+    try {
+        const targetUser = await User.findByPk(req.params.id);
+        if (!targetUser) return res.status(404).json({ error: "User not found" });
+
+        await targetUser.update({ isBanned: false, banReason: null });
+        res.status(200).json({ message: `User ${targetUser.email} unbanned.` });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Server error during unblocking" });
+    }
+});
 
 app.get('/tweets', async (req, res) => {
     try {
