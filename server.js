@@ -7,6 +7,28 @@ const port = 3000;
 
 app.use(express.json());
 
+app.use('/auth', authRoutes);
+
+app.get('/profile', verifyToken, async (req, res) => {
+    res.status(200).json({ 
+        message: "This is a protected profile route.",
+        user: req.user 
+    });
+});
+
+app.get('/admin/users', verifyToken, isAdmin, async (req, res) => {
+    try {
+        const users = await User.findAll({ attributes: ['id', 'email', 'role', 'createdAt'] });
+        res.status(200).json({
+            message: "Secret admin panel",
+            users
+        });
+    } catch (error) {
+        res.status(500).json({ error: "Error retrieving users" });
+    }
+});
+
+
 app.get('/tweets', async (req, res) => {
     try {
         const tweets = await Tweet.findAll({
