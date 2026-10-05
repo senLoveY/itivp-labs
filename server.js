@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const { Tweet } = require('./models');
+const { Tweet, User } = require('./models');
 const authRoutes = require('./routes/auth');
 const { verifyToken, isAdmin } = require('./middleware/auth');
 
