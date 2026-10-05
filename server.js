@@ -51,31 +51,31 @@ app.post('/admin/users/:id/ban', verifyToken, isAdmin, async (req, res) => {
         const { banReason } = req.body;
         const targetUser = await User.findByPk(req.params.id);
 
-        if (!targetUser) return res.status(404).json({ error: "Пользователь не найден" });
-        if (targetUser.role === 'admin') return res.status(403).json({ error: "Нельзя забанить администратора!" });
+        if (!targetUser) return res.status(404).json({ error: "User not found" });
+        if (targetUser.role === 'admin') return res.status(403).json({ error: "You can't ban an admin!" });
 
         await targetUser.update({ 
             isBanned: true, 
-            banReason: banReason || 'Причина не указана' 
+            banReason: banReason || 'Reason not specified' 
         });
 
-        res.status(200).json({ message: `Пользователь ${targetUser.email} заблокирован.` });
+        res.status(200).json({ message: `User ${targetUser.email} banned.` });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Ошибка сервера при блокировке" });
+        res.status(500).json({ error: "Server error during blocking" });
     }
 });
 
 app.post('/admin/users/:id/unban', verifyToken, isAdmin, async (req, res) => {
     try {
         const targetUser = await User.findByPk(req.params.id);
-        if (!targetUser) return res.status(404).json({ error: "Пользователь не найден" });
+        if (!targetUser) return res.status(404).json({ error: "User not found" });
 
         await targetUser.update({ isBanned: false, banReason: null });
-        res.status(200).json({ message: `Пользователь ${targetUser.email} разблокирован.` });
+        res.status(200).json({ message: `User ${targetUser.email} unbanned.` });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Ошибка сервера при разблокировке" });
+        res.status(500).json({ error: "Server error during unblocking" });
     }
 });
 
