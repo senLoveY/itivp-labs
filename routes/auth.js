@@ -11,6 +11,29 @@ const isPasswordComplex = (password) => {
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     summary: Register new user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: User successfully registered
+ */
 router.post('/register', async (req, res) => {
     try {
         const { email, password, role } = req.body;
@@ -40,6 +63,27 @@ router.post('/register', async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: Login
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ */
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -91,6 +135,33 @@ router.post('/login', async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /auth/change-password:
+ *   post:
+ *     summary: Change user password
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               oldPassword:
+ *                 type: string
+ *                 example: Admin123!
+ *               newPassword:
+ *                 type: string
+ *                 example: SuperAdmin99@
+ *     responses:
+ *       200:
+ *         description: Password successfully changed
+ *       401:
+ *         description: Unauthorized
+ */
 router.post('/change-password', verifyToken, async (req, res) => {
     try {
         const { oldPassword, newPassword } = req.body;
@@ -121,6 +192,42 @@ router.post('/change-password', verifyToken, async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /auth/change-email:
+ *   post:
+ *     summary: Change user email
+ *     description: Updates the email address of the authenticated user. Requires current password confirmation.
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               password:
+ *                 type: string
+ *                 description: Current user password for confirmation
+ *                 example: Admin123!
+ *               newEmail:
+ *                 type: string
+ *                 description: New email address
+ *                 example: new_admin@mail.com
+ *     responses:
+ *       200:
+ *         description: Email successfully updated
+ *       400:
+ *         description: Email already in use
+ *       401:
+ *         description: Invalid password or unauthorized
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error during email change
+ */
 router.post('/change-email', verifyToken, async (req, res) => {
     try {
         const { password, newEmail } = req.body;
