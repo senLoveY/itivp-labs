@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const { Tweet, User } = require('./models');
+const { Tweet, User, LoginLog } = require('./models');
 const authRoutes = require('./routes/auth');
 const { verifyToken, isAdmin } = require('./middleware/auth');
 
@@ -30,6 +30,21 @@ app.get('/admin/users', verifyToken, isAdmin, async (req, res) => {
     }
 });
 
+app.get('/admin/logs', verifyToken, isAdmin, async (req, res) => {
+    try {
+        const logs = await LoginLog.findAll({
+            order: [['createdAt', 'DESC']],
+            limit: 50
+        });
+        res.status(200).json({
+            message: "Login logs retrieved successfully",
+            logs
+        });
+    } catch (error) {
+        console.error("LOGS ERROR:", error);
+        res.status(500).json({ error: "Error retrieving logs" });
+    }
+});
 
 app.get('/tweets', async (req, res) => {
     try {

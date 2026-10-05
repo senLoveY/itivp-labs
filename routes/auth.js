@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { User } = require('../models');
+const { User, LoginLog } = require('../models');
 const { verifyToken } = require('../middleware/auth');
 
 const isPasswordComplex = (password) => {
@@ -43,16 +43,40 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
+        const ip = req.ip || req.socket.remoteAddress;
+        const userAgent = req.headers['user-agent'] || 'Unknown';
 
         const user = await User.findOne({ where: { email } });
         if (!user) {
             return res.status(404).json({ error: "User not found" });
         }
 
+        if (user.lockUntil && user.lockUntil > new Date()) {
+            return res.status(403).json({ 
+                error: "Account temporarily locked due to multiple failed login attempts. Try again later." 
+            });
+        }
+
         const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+
         if (!isPasswordValid) {
+            let attempts = user.failedLoginAttempts + 1;
+            let lockUntil = user.lockUntil;
+
+            if (attempts >= 5) {
+                lockUntil = new Date(Date.now() + 5 * 60 * 1000); // Текущее время + 5 минут
+            }
+
+            await user.update({ failedLoginAttempts: attempts, lockUntil });
+
+            await LoginLog.create({ userId: user.id, ip, userAgent, success: false });
+
             return res.status(401).json({ error: "Invalid password" });
         }
+
+        await user.update({ failedLoginAttempts: 0, lockUntil: null });
+
+        await LoginLog.create({ userId: user.id, ip, userAgent, success: true });
 
         const token = jwt.sign(
             { id: user.id, email: user.email, role: user.role },
@@ -62,6 +86,7 @@ router.post('/login', async (req, res) => {
 
         res.status(200).json({ message: "Login successful", token });
     } catch (error) {
+        console.error("Login error:", error);
         res.status(500).json({ error: "Server error during login" });
     }
 });
