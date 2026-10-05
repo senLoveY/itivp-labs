@@ -121,4 +121,30 @@ router.post('/change-password', verifyToken, async (req, res) => {
     }
 });
 
+router.post('/change-email', verifyToken, async (req, res) => {
+    try {
+        const { password, newEmail } = req.body;
+        
+        const user = await User.findByPk(req.user.id);
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+        if (!isPasswordValid) {
+            return res.status(401).json({ error: "Invalid password" });
+        }
+
+        const emailExists = await User.findOne({ where: { email: newEmail } });
+        if (emailExists) {
+            return res.status(400).json({ error: "Email already in use" });
+        }
+
+        await user.update({ email: newEmail });
+
+        res.status(200).json({ message: "Email successfully updated" });
+    } catch (error) {
+        console.error("Change email error:", error);
+        res.status(500).json({ error: "Server error during email change" });
+    }
+});
+
 module.exports = router;

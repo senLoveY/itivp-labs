@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { User } = require('../models');
 
 const verifyToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
@@ -25,4 +26,24 @@ const isAdmin = (req, res, next) => {
     }
 };
 
-module.exports = { verifyToken, isAdmin };
+const isNotBanned = async (req, res, next) => {
+    try {
+        if (!req.user) return res.status(401).json({ error: "Требуется авторизация" });
+
+        const user = await User.findByPk(req.user.id);
+        if (!user) return res.status(404).json({ error: "Пользователь не найден" });
+
+        if (user.isBanned) {
+            return res.status(403).json({ 
+                error: `Ваш аккаунт заблокирован. Причина: ${user.banReason}` 
+            });
+        }
+
+        next();
+    } catch (error) {
+        console.error("Ban check error:", error);
+        res.status(500).json({ error: "Ошибка сервера при проверке статуса аккаунта" });
+    }
+};
+
+module.exports = { verifyToken, isAdmin, isNotBanned };

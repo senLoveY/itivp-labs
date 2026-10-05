@@ -46,6 +46,39 @@ app.get('/admin/logs', verifyToken, isAdmin, async (req, res) => {
     }
 });
 
+app.post('/admin/users/:id/ban', verifyToken, isAdmin, async (req, res) => {
+    try {
+        const { banReason } = req.body;
+        const targetUser = await User.findByPk(req.params.id);
+
+        if (!targetUser) return res.status(404).json({ error: "Пользователь не найден" });
+        if (targetUser.role === 'admin') return res.status(403).json({ error: "Нельзя забанить администратора!" });
+
+        await targetUser.update({ 
+            isBanned: true, 
+            banReason: banReason || 'Причина не указана' 
+        });
+
+        res.status(200).json({ message: `Пользователь ${targetUser.email} заблокирован.` });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Ошибка сервера при блокировке" });
+    }
+});
+
+app.post('/admin/users/:id/unban', verifyToken, isAdmin, async (req, res) => {
+    try {
+        const targetUser = await User.findByPk(req.params.id);
+        if (!targetUser) return res.status(404).json({ error: "Пользователь не найден" });
+
+        await targetUser.update({ isBanned: false, banReason: null });
+        res.status(200).json({ message: `Пользователь ${targetUser.email} разблокирован.` });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Ошибка сервера при разблокировке" });
+    }
+});
+
 app.get('/tweets', async (req, res) => {
     try {
         const tweets = await Tweet.findAll({
