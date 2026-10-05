@@ -1,0 +1,91 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Microblogging API (Twitter Clone)",
+    "version": "1.0.0",
+    "description": "API documentation for the microblogging platform."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "tags": [
+    { "name": "Auth", "description": "Authentication routes" },
+    { "name": "Tweets", "description": "Tweet management" }
+  ],
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "User login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "example": "admin@mail.com" },
+                  "password": { "type": "string", "example": "Admin123!" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Successful login, returns JWT token" },
+          "401": { "description": "Invalid password" },
+          "404": { "description": "User not found" }
+        }
+      }
+    },
+    "/tweets": {
+      "get": {
+        "tags": ["Tweets"],
+        "summary": "Get a list of all tweets",
+        "responses": {
+          "200": { "description": "An array of tweets" }
+        }
+      },
+      "post": {
+        "tags": ["Tweets"],
+        "summary": "Create a new tweet (Authorization required)",
+        "security": [ { "bearerAuth": [] } ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "author": { "type": "string", "example": "admin" },
+                  "content": { "type": "string", "example": "Hello from Swagger!" },
+                  "hashtags": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "example": ["#swagger", "#api"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Tweet successfully created" },
+          "401": { "description": "Unauthorized / Missing access token" }
+        }
+      }
+    }
+  }
+}

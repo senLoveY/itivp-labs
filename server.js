@@ -4,13 +4,59 @@ const { Tweet, User, LoginLog } = require('./models');
 const authRoutes = require('./routes/auth');
 const { verifyToken, isAdmin } = require('./middleware/auth');
 
+const swaggerJsDoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
+
 const app = express();
+
+const swaggerOptions = {
+    swaggerDefinition: {
+        openapi: '3.0.0',
+        info: {
+            title: 'Microblogging API',
+            version: '1.0.0',
+            description: 'API documentation for the microblogging platform.'
+        },
+        servers: [
+            { url: 'http://localhost:3000' }
+        ],
+        components: {
+            securitySchemes: {
+                bearerAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT',
+                }
+            }
+        },
+        security: [{ bearerAuth: [] }] 
+    },
+    apis: ['./server.js', './routes/*.js'], 
+};
+
+const swaggerDocs = swaggerJsDoc(swaggerOptions);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+
 const port = 3000;
 
 app.use(express.json());
 
 app.use('/auth', authRoutes);
 
+/**
+ * @swagger
+ * /profile:
+ *   get:
+ *     summary: Get current user profile
+ *     tags: [Users & Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Returns protected user data
+ *       401:
+ *         description: Token not provided
+ */
 app.get('/profile', verifyToken, async (req, res) => {
     res.status(200).json({ 
         message: "This is a protected profile route.",
@@ -18,6 +64,20 @@ app.get('/profile', verifyToken, async (req, res) => {
     });
 });
 
+/**
+ * @swagger
+ * /admin/users:
+ *   get:
+ *     summary: Get all users (Admin only)
+ *     tags: [Users & Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Returns an array of users
+ *       403:
+ *         description: Access denied. Admin rights required.
+ */
 app.get('/admin/users', verifyToken, isAdmin, async (req, res) => {
     try {
         const users = await User.findAll({ attributes: ['id', 'email', 'role', 'createdAt'] });
@@ -30,6 +90,20 @@ app.get('/admin/users', verifyToken, isAdmin, async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /admin/logs:
+ *   get:
+ *     summary: View login logs (Admin only)
+ *     tags: [Users & Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Returns an array of login attempts
+ *       403:
+ *         description: Admin rights required
+ */
 app.get('/admin/logs', verifyToken, isAdmin, async (req, res) => {
     try {
         const logs = await LoginLog.findAll({
@@ -46,6 +120,39 @@ app.get('/admin/logs', verifyToken, isAdmin, async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /admin/users/{id}/ban:
+ *   post:
+ *     summary: Ban a user (Admin only)
+ *     tags: [Users & Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: User ID to ban
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               banReason:
+ *                 type: string
+ *                 example: Violation of community guidelines
+ *     responses:
+ *       200:
+ *         description: User successfully banned
+ *       403:
+ *         description: Cannot ban another admin
+ *       404:
+ *         description: User not found
+ */
 app.post('/admin/users/:id/ban', verifyToken, isAdmin, async (req, res) => {
     try {
         const { banReason } = req.body;
@@ -66,6 +173,27 @@ app.post('/admin/users/:id/ban', verifyToken, isAdmin, async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /admin/users/{id}/unban:
+ *   post:
+ *     summary: Unban a user (Admin only)
+ *     tags: [Users & Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: User ID to unban
+ *     responses:
+ *       200:
+ *         description: User successfully unbanned
+ *       404:
+ *         description: User not found
+ */
 app.post('/admin/users/:id/unban', verifyToken, isAdmin, async (req, res) => {
     try {
         const targetUser = await User.findByPk(req.params.id);
@@ -79,6 +207,17 @@ app.post('/admin/users/:id/unban', verifyToken, isAdmin, async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /tweets:
+ *   get:
+ *     summary: Get a list of all tweets
+ *     tags: [Tweets]
+ *     security: [] 
+ *     responses:
+ *       200:
+ *         description: An array of tweets
+ */
 app.get('/tweets', async (req, res) => {
     try {
         const tweets = await Tweet.findAll({
@@ -106,6 +245,27 @@ app.get('/tweets/:id', async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /tweets:
+ *   post:
+ *     summary: Create a new tweet
+ *     tags: [Tweets]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               author:
+ *                 type: string
+ *               content:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Tweet successfully created
+ */
 app.post('/tweets', async (req, res) => {
     try {
         const { author, content, hashtags } = req.body;
@@ -127,6 +287,56 @@ app.post('/tweets', async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /tweets/{id}:
+ *   put:
+ *     summary: Update an existing tweet
+ *     tags: [Tweets]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Tweet ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               author:
+ *                 type: string
+ *               content:
+ *                 type: string
+ *               hashtags:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Tweet successfully updated
+ *       404:
+ *         description: Tweet not found
+ *
+ *   delete:
+ *     summary: Delete a tweet
+ *     tags: [Tweets]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Tweet ID
+ *     responses:
+ *       200:
+ *         description: Tweet successfully deleted
+ *       404:
+ *         description: Tweet not found
+ */
 app.put('/tweets/:id', async (req, res) => {
     try {
         const { author, content, hashtags } = req.body;
