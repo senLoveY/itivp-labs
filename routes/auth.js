@@ -2,6 +2,12 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
+const { verifyToken } = require('../middleware/auth');
+
+const isPasswordComplex = (password) => {
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    return passwordRegex.test(password);
+};
 
 const router = express.Router();
 
@@ -12,6 +18,12 @@ router.post('/register', async (req, res) => {
         const existingUser = await User.findOne({ where: { email } });
         if (existingUser) {
             return res.status(400).json({ error: "User with this email already exists" });
+        }
+
+        if (!isPasswordComplex(password)) {
+            return res.status(400).json({ 
+                error: "Password must be at least 8 characters long, include uppercase, lowercase, number, and special character." 
+            });
         }
 
         const passwordHash = await bcrypt.hash(password, 10);
@@ -28,7 +40,6 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// POST /auth/login
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -52,6 +63,36 @@ router.post('/login', async (req, res) => {
         res.status(200).json({ message: "Login successful", token });
     } catch (error) {
         res.status(500).json({ error: "Server error during login" });
+    }
+});
+
+router.post('/change-password', verifyToken, async (req, res) => {
+    try {
+        const { oldPassword, newPassword } = req.body;
+        
+        const user = await User.findByPk(req.user.id);
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        const isPasswordValid = await bcrypt.compare(oldPassword, user.passwordHash);
+        if (!isPasswordValid) {
+            return res.status(401).json({ error: "Invalid old password" });
+        }
+
+        if (!isPasswordComplex(newPassword)) {
+            return res.status(400).json({ 
+                error: "New password does not meet security requirements." 
+            });
+        }
+
+        const newPasswordHash = await bcrypt.hash(newPassword, 10);
+        await user.update({ passwordHash: newPasswordHash });
+
+        res.status(200).json({ message: "Password successfully changed" });
+    } catch (error) {
+        console.error("Password change error:", error);
+        res.status(500).json({ error: "Server error during password change" });
     }
 });
 

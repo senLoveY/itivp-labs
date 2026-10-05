@@ -14,9 +14,36 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   User.init({
-    email: DataTypes.STRING,
-    passwordHash: DataTypes.STRING,
-    role: DataTypes.STRING
+    email: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true
+    },
+    passwordHash: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    role: {
+      type: DataTypes.STRING,
+      defaultValue: 'user'
+    },
+    // НОВЫЕ ПОЛЯ:
+    failedLoginAttempts: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0
+    },
+    lockUntil: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    isBanned: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
+    },
+    banReason: {
+      type: DataTypes.STRING,
+      allowNull: true
+    }
   }, {
     sequelize,
     modelName: 'User',
