@@ -17,22 +17,35 @@ const router = express.Router();
  *   post:
  *     summary: Register new user
  *     tags: [Auth]
+ *     security: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - email
+ *               - password
  *             properties:
  *               email:
  *                 type: string
+ *                 example: user@mail.com
  *               password:
  *                 type: string
+ *                 description: Min 8 chars, uppercase, lowercase, number, and special character (@$!%*?&)
+ *                 example: User123!
  *               role:
  *                 type: string
+ *                 description: Optional. Defaults to "user"
+ *                 example: user
  *     responses:
  *       201:
  *         description: User successfully registered
+ *       400:
+ *         description: Email already exists or password does not meet complexity requirements
+ *       500:
+ *         description: Server error during registration
  */
 router.post('/register', async (req, res) => {
     try {
@@ -69,20 +82,34 @@ router.post('/register', async (req, res) => {
  *   post:
  *     summary: Login
  *     tags: [Auth]
+ *     security: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - email
+ *               - password
  *             properties:
  *               email:
  *                 type: string
+ *                 example: admin@mail.com
  *               password:
  *                 type: string
+ *                 example: Admin123!
  *     responses:
  *       200:
- *         description: Login successful
+ *         description: Login successful, returns JWT token
+ *       401:
+ *         description: Invalid password
+ *       403:
+ *         description: Account temporarily locked due to multiple failed login attempts
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error during login
  */
 router.post('/login', async (req, res) => {
     try {
@@ -149,18 +176,30 @@ router.post('/login', async (req, res) => {
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - oldPassword
+ *               - newPassword
  *             properties:
  *               oldPassword:
  *                 type: string
  *                 example: Admin123!
  *               newPassword:
  *                 type: string
+ *                 description: Min 8 chars, uppercase, lowercase, number, and special character (@$!%*?&)
  *                 example: SuperAdmin99@
  *     responses:
  *       200:
  *         description: Password successfully changed
+ *       400:
+ *         description: New password does not meet security requirements
  *       401:
- *         description: Unauthorized
+ *         description: Unauthorized or invalid old password
+ *       403:
+ *         description: Invalid or expired token
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error during password change
  */
 router.post('/change-password', verifyToken, async (req, res) => {
     try {
@@ -207,6 +246,9 @@ router.post('/change-password', verifyToken, async (req, res) => {
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - password
+ *               - newEmail
  *             properties:
  *               password:
  *                 type: string
@@ -222,7 +264,9 @@ router.post('/change-password', verifyToken, async (req, res) => {
  *       400:
  *         description: Email already in use
  *       401:
- *         description: Invalid password or unauthorized
+ *         description: Invalid password or token not provided
+ *       403:
+ *         description: Invalid or expired token
  *       404:
  *         description: User not found
  *       500:
