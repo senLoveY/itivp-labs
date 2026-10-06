@@ -135,7 +135,7 @@ router.post('/login', async (req, res) => {
             let lockUntil = user.lockUntil;
 
             if (attempts >= 5) {
-                lockUntil = new Date(Date.now() + 5 * 60 * 1000); // Текущее время + 5 минут
+                lockUntil = new Date(Date.now() + 5 * 60 * 1000);
             }
 
             await user.update({ failedLoginAttempts: attempts, lockUntil });
