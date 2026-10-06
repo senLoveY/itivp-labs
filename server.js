@@ -331,7 +331,6 @@ app.get('/tweets', async (req, res) => {
  *           schema:
  *             type: object
  *             required:
- *               - author
  *               - content
  *             properties:
  *               author:
@@ -349,7 +348,7 @@ app.get('/tweets', async (req, res) => {
  *       200:
  *         description: Tweet successfully updated
  *       400:
- *         description: The author and content fields are mandatory for update
+ *         description: The content field is mandatory for update
  *       401:
  *         description: Token not provided
  *       403:
@@ -423,7 +422,7 @@ app.post('/tweets', verifyToken, isNotBanned, async (req, res) => {
 
 app.put('/tweets/:id', verifyToken, isNotBanned, async (req, res) => {
     try {
-        const { author, content, hashtags } = req.body;
+        const { content, hashtags } = req.body;
         const tweet = await Tweet.findByPk(req.params.id);
 
         if (!tweet) {
@@ -434,12 +433,11 @@ app.put('/tweets/:id', verifyToken, isNotBanned, async (req, res) => {
             return res.status(403).json({ error: "Access denied. You can only update your own tweets." });
         }
 
-        if (!author || !content) {
-            return res.status(400).json({ error: "The 'author' and 'content' fields are mandatory for update." });
+        if (!content) {
+            return res.status(400).json({ error: "The 'content' field are mandatory for update." });
         }
 
         await tweet.update({
-            author,
             content,
             hashtags: hashtags || []
         });
