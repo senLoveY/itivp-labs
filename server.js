@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const { Tweet, User, LoginLog } = require('./models');
 const authRoutes = require('./routes/auth');
-const { verifyToken, isAdmin } = require('./middleware/auth');
+const { verifyToken, isAdmin, isNotBanned} = require('./middleware/auth');
 
 const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
@@ -266,12 +266,13 @@ app.get('/tweets/:id', async (req, res) => {
  *       201:
  *         description: Tweet successfully created
  */
-app.post('/tweets', async (req, res) => {
+app.post('/tweets', verifyToken, isNotBanned, async (req, res) => {
     try {
-        const { author, content, hashtags } = req.body;
+        const { content, hashtags } = req.body;
+        const author = req.user.email;
 
-        if (!author || !content) {
-            return res.status(400).json({ error: "The 'author' and 'content' fields are mandatory." });
+        if (!content) {
+            return res.status(400).json({ error: "The 'content' field is mandatory." });
         }
 
         const newTweet = await Tweet.create({
@@ -337,13 +338,17 @@ app.post('/tweets', async (req, res) => {
  *       404:
  *         description: Tweet not found
  */
-app.put('/tweets/:id', async (req, res) => {
+app.put('/tweets/:id', verifyToken, isNotBanned, async (req, res) => {
     try {
         const { author, content, hashtags } = req.body;
         const tweet = await Tweet.findByPk(req.params.id);
 
         if (!tweet) {
             return res.status(404).json({ error: "Tweet not found" });
+        }
+
+        if (tweet.author !== req.user.email && req.user.role !== 'admin') {
+            return res.status(403).json({ error: "Access denied. You can only update your own tweets." });
         }
 
         if (!author || !content) {
@@ -363,12 +368,16 @@ app.put('/tweets/:id', async (req, res) => {
     }
 });
 
-app.delete('/tweets/:id', async (req, res) => {
+app.delete('/tweets/:id', verifyToken, isNotBanned, async (req, res) => {
     try {
         const tweet = await Tweet.findByPk(req.params.id);
 
         if (!tweet) {
             return res.status(404).json({ error: "Tweet not found" });
+        }
+
+        if (tweet.author !== req.user.email && req.user.role !== 'admin') {
+            return res.status(403).json({ error: "Access denied. You can only delete your own tweets." });
         }
 
         await tweet.destroy();
