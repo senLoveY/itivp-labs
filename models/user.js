@@ -27,7 +27,6 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       defaultValue: 'user'
     },
-    // НОВЫЕ ПОЛЯ:
     failedLoginAttempts: {
       type: DataTypes.INTEGER,
       defaultValue: 0

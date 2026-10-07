@@ -21,6 +21,7 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     sequelize,
     modelName: 'LoginLog',
+    updatedAt: false
   });
   return LoginLog;
 };

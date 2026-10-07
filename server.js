@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const { Tweet, User, LoginLog } = require('./models');
 const authRoutes = require('./routes/auth');
-const { verifyToken, isAdmin } = require('./middleware/auth');
+const { verifyToken, isAdmin, isNotBanned} = require('./middleware/auth');
 
 const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
@@ -53,9 +53,11 @@ app.use('/auth', authRoutes);
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Returns protected user data
+ *         description: Returns protected user data from JWT (id, email, role)
  *       401:
  *         description: Token not provided
+ *       403:
+ *         description: Invalid or expired token
  */
 app.get('/profile', verifyToken, async (req, res) => {
     res.status(200).json({ 
@@ -74,9 +76,13 @@ app.get('/profile', verifyToken, async (req, res) => {
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Returns an array of users
+ *         description: Returns an array of users (id, email, role, createdAt)
+ *       401:
+ *         description: Token not provided
  *       403:
- *         description: Access denied. Admin rights required.
+ *         description: Access denied. Admin rights required or invalid token
+ *       500:
+ *         description: Error retrieving users
  */
 app.get('/admin/users', verifyToken, isAdmin, async (req, res) => {
     try {
@@ -100,9 +106,13 @@ app.get('/admin/users', verifyToken, isAdmin, async (req, res) => {
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Returns an array of login attempts
+ *         description: Returns up to 50 latest login attempts
+ *       401:
+ *         description: Token not provided
  *       403:
- *         description: Admin rights required
+ *         description: Admin rights required or invalid token
+ *       500:
+ *         description: Error retrieving logs
  */
 app.get('/admin/logs', verifyToken, isAdmin, async (req, res) => {
     try {
@@ -148,10 +158,14 @@ app.get('/admin/logs', verifyToken, isAdmin, async (req, res) => {
  *     responses:
  *       200:
  *         description: User successfully banned
+ *       401:
+ *         description: Token not provided
  *       403:
- *         description: Cannot ban another admin
+ *         description: Cannot ban another admin, or admin rights required / invalid token
  *       404:
  *         description: User not found
+ *       500:
+ *         description: Server error during blocking
  */
 app.post('/admin/users/:id/ban', verifyToken, isAdmin, async (req, res) => {
     try {
@@ -191,8 +205,14 @@ app.post('/admin/users/:id/ban', verifyToken, isAdmin, async (req, res) => {
  *     responses:
  *       200:
  *         description: User successfully unbanned
+ *       401:
+ *         description: Token not provided
+ *       403:
+ *         description: Admin rights required or invalid token
  *       404:
  *         description: User not found
+ *       500:
+ *         description: Server error during unblocking
  */
 app.post('/admin/users/:id/unban', verifyToken, isAdmin, async (req, res) => {
     try {
@@ -213,10 +233,49 @@ app.post('/admin/users/:id/unban', verifyToken, isAdmin, async (req, res) => {
  *   get:
  *     summary: Get a list of all tweets
  *     tags: [Tweets]
- *     security: [] 
+ *     security: []
  *     responses:
  *       200:
- *         description: An array of tweets
+ *         description: An array of tweets ordered by createdAt DESC
+ *       500:
+ *         description: Database error while fetching tweets
+ *
+ *   post:
+ *     summary: Create a new tweet
+ *     description: Author is taken from the JWT token (user email). Banned users cannot create tweets.
+ *     tags: [Tweets]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - content
+ *             properties:
+ *               content:
+ *                 type: string
+ *                 example: Hello from Swagger!
+ *               hashtags:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["#swagger", "#api"]
+ *     responses:
+ *       201:
+ *         description: Tweet successfully created
+ *       400:
+ *         description: The content field is mandatory
+ *       401:
+ *         description: Token not provided
+ *       403:
+ *         description: Invalid/expired token or account is banned
+ *       404:
+ *         description: User not found (during ban check)
+ *       500:
+ *         description: Database error while creating tweet
  */
 app.get('/tweets', async (req, res) => {
     try {
@@ -230,6 +289,100 @@ app.get('/tweets', async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /tweets/{id}:
+ *   get:
+ *     summary: Get a tweet by ID
+ *     tags: [Tweets]
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Tweet ID
+ *     responses:
+ *       200:
+ *         description: Tweet found
+ *       404:
+ *         description: Tweet not found
+ *       500:
+ *         description: Database error while fetching tweet
+ *
+ *   put:
+ *     summary: Update an existing tweet
+ *     description: Only the tweet author or an admin can update. Banned users cannot update tweets.
+ *     tags: [Tweets]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Tweet ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - content
+ *             properties:
+ *               author:
+ *                 type: string
+ *                 example: admin@mail.com
+ *               content:
+ *                 type: string
+ *                 example: Updated tweet content
+ *               hashtags:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["#updated"]
+ *     responses:
+ *       200:
+ *         description: Tweet successfully updated
+ *       400:
+ *         description: The content field is mandatory for update
+ *       401:
+ *         description: Token not provided
+ *       403:
+ *         description: Access denied (not owner/admin), invalid token, or account is banned
+ *       404:
+ *         description: Tweet or user not found
+ *       500:
+ *         description: Database error while updating tweet
+ *
+ *   delete:
+ *     summary: Delete a tweet
+ *     description: Only the tweet author or an admin can delete. Banned users cannot delete tweets.
+ *     tags: [Tweets]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Tweet ID
+ *     responses:
+ *       200:
+ *         description: Tweet successfully deleted
+ *       401:
+ *         description: Token not provided
+ *       403:
+ *         description: Access denied (not owner/admin), invalid token, or account is banned
+ *       404:
+ *         description: Tweet or user not found
+ *       500:
+ *         description: Database error while deleting tweet
+ */
 app.get('/tweets/:id', async (req, res) => {
     try {
         const tweet = await Tweet.findByPk(req.params.id);
@@ -245,33 +398,13 @@ app.get('/tweets/:id', async (req, res) => {
     }
 });
 
-/**
- * @swagger
- * /tweets:
- *   post:
- *     summary: Create a new tweet
- *     tags: [Tweets]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               author:
- *                 type: string
- *               content:
- *                 type: string
- *     responses:
- *       201:
- *         description: Tweet successfully created
- */
-app.post('/tweets', async (req, res) => {
+app.post('/tweets', verifyToken, isNotBanned, async (req, res) => {
     try {
-        const { author, content, hashtags } = req.body;
+        const { content, hashtags } = req.body;
+        const author = req.user.email;
 
-        if (!author || !content) {
-            return res.status(400).json({ error: "The 'author' and 'content' fields are mandatory." });
+        if (!content) {
+            return res.status(400).json({ error: "The 'content' field is mandatory." });
         }
 
         const newTweet = await Tweet.create({
@@ -287,71 +420,24 @@ app.post('/tweets', async (req, res) => {
     }
 });
 
-/**
- * @swagger
- * /tweets/{id}:
- *   put:
- *     summary: Update an existing tweet
- *     tags: [Tweets]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: Tweet ID
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               author:
- *                 type: string
- *               content:
- *                 type: string
- *               hashtags:
- *                 type: array
- *                 items:
- *                   type: string
- *     responses:
- *       200:
- *         description: Tweet successfully updated
- *       404:
- *         description: Tweet not found
- *
- *   delete:
- *     summary: Delete a tweet
- *     tags: [Tweets]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: Tweet ID
- *     responses:
- *       200:
- *         description: Tweet successfully deleted
- *       404:
- *         description: Tweet not found
- */
-app.put('/tweets/:id', async (req, res) => {
+app.put('/tweets/:id', verifyToken, isNotBanned, async (req, res) => {
     try {
-        const { author, content, hashtags } = req.body;
+        const { content, hashtags } = req.body;
         const tweet = await Tweet.findByPk(req.params.id);
 
         if (!tweet) {
             return res.status(404).json({ error: "Tweet not found" });
         }
 
-        if (!author || !content) {
-            return res.status(400).json({ error: "The 'author' and 'content' fields are mandatory for update." });
+        if (tweet.author !== req.user.email && req.user.role !== 'admin') {
+            return res.status(403).json({ error: "Access denied. You can only update your own tweets." });
+        }
+
+        if (!content) {
+            return res.status(400).json({ error: "The 'content' field are mandatory for update." });
         }
 
         await tweet.update({
-            author,
             content,
             hashtags: hashtags || []
         });
@@ -363,12 +449,16 @@ app.put('/tweets/:id', async (req, res) => {
     }
 });
 
-app.delete('/tweets/:id', async (req, res) => {
+app.delete('/tweets/:id', verifyToken, isNotBanned, async (req, res) => {
     try {
         const tweet = await Tweet.findByPk(req.params.id);
 
         if (!tweet) {
             return res.status(404).json({ error: "Tweet not found" });
+        }
+
+        if (tweet.author !== req.user.email && req.user.role !== 'admin') {
+            return res.status(403).json({ error: "Access denied. You can only delete your own tweets." });
         }
 
         await tweet.destroy();
