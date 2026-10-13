@@ -1,0 +1,7 @@
+<div class="tweet-card">
+    <h3>Автор: @<%= tweet.author %></h3>
+    <p><%= tweet.content %></p>
+    <small>ID: <%= tweet.id %></small>
+    <br><br>
+    <a href="/<%= user.isAuthenticated ? '?auth=1' : '' %>">← Назад</a>
+</div>

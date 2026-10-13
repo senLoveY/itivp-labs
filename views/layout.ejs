@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Микроблог</h1>
+        <nav>
+            <a href="/">Лента</a>
+            <% if (user.isAuthenticated) { %>
+                <a href="/add?auth=1">Написать твит</a>
+                <span style="margin-left: 20px;">Привет, <%= user.name %>! <a href="/">Выйти</a></span>
+            <% } else { %>
+                <a href="/?auth=1">Войти (auth=1)</a>
+            <% } %>
+        </nav>
+    </header>
+    <main><%- body %></main>
+</body>
+</html>

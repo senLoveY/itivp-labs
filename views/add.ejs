@@ -1,0 +1,6 @@
+<h2><%= title %></h2>
+<form action="/add" method="POST">
+    Имя: <input type="text" name="author" value="<%= user.name %>" required><br><br>
+    Текст: <textarea name="content" required></textarea><br><br>
+    <button type="submit">Опубликовать</button>
+</form>

@@ -1,13 +1,43 @@
 require('dotenv').config();
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
+const expressLayouts = require('express-ejs-layouts');
+
 const { Tweet, User, LoginLog } = require('./models');
 const authRoutes = require('./routes/auth');
-const { verifyToken, isAdmin, isNotBanned} = require('./middleware/auth');
+const { verifyToken, isAdmin, isNotBanned } = require('./middleware/auth');
 
 const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 
 const app = express();
+const port = 3000;
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.use(expressLayouts);
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+app.set('layout', 'layout');
+app.use(express.static(path.join(__dirname, 'public')));
+
+const fileLogger = (req, res, next) => {
+    const logString = `[${new Date().toISOString()}] Method: ${req.method}, URL: ${req.originalUrl}\n`;
+    fs.appendFile(path.join(__dirname, 'server.log'), logString, () => {});
+    next();
+};
+app.use(fileLogger);
+
+const fakeWebAuth = (req, res, next) => {
+    if (req.query.auth === '1') {
+        req.fakeUser = { name: 'Admin', isAuthenticated: true };
+    } else {
+        req.fakeUser = { name: 'Guest', isAuthenticated: false };
+    }
+    next();
+};
 
 const swaggerOptions = {
     swaggerDefinition: {
@@ -36,10 +66,6 @@ const swaggerOptions = {
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
-
-const port = 3000;
-
-app.use(express.json());
 
 app.use('/auth', authRoutes);
 
@@ -333,9 +359,6 @@ app.get('/tweets', async (req, res) => {
  *             required:
  *               - content
  *             properties:
- *               author:
- *                 type: string
- *                 example: admin@mail.com
  *               content:
  *                 type: string
  *                 example: Updated tweet content
@@ -470,13 +493,66 @@ app.delete('/tweets/:id', verifyToken, isNotBanned, async (req, res) => {
     }
 });
 
-app.use((req, res, next) => {
-    res.status(404).json({ error: "Route not found" });
+app.get('/', fakeWebAuth, async (req, res, next) => {
+    try {
+        const tweets = await Tweet.findAll({ order: [['createdAt', 'DESC']] });
+        res.render('index', { title: 'Лента твитов', tweets, user: req.fakeUser });
+    } catch (error) {
+        next(error);
+    }
+});
+
+app.get('/item/:id', fakeWebAuth, async (req, res, next) => {
+    try {
+        const tweet = await Tweet.findByPk(req.params.id);
+        if (!tweet) return next();
+        res.render('item', { title: `Твит от ${tweet.author}`, tweet, user: req.fakeUser });
+    } catch (error) {
+        next(error);
+    }
+});
+
+app.get('/add', fakeWebAuth, (req, res) => {
+    if (!req.fakeUser.isAuthenticated) {
+        return res.send('<h3 style="text-align:center; margin-top:50px;">Доступ запрещен. <a href="/?auth=1">Войти как Администратор</a></h3>');
+    }
+    res.render('add', { title: 'Добавить твит', user: req.fakeUser });
+});
+
+app.post('/add', fakeWebAuth, async (req, res, next) => {
+    try {
+        const { author, content } = req.body;
+
+        if (content.toLowerCase() === 'ошибка') {
+            throw new Error("Имитация критической ошибки сервера!");
+        }
+
+        if (author && content) {
+            await Tweet.create({ author, content, hashtags: [] });
+        }
+        res.redirect('/?auth=1');
+    } catch (error) {
+        next(error);
+    }
+});
+
+app.use((req, res) => {
+    if (req.accepts('html')) {
+        res.status(404).render('404', { title: 'Страница не найдена', user: { name: 'Guest', isAuthenticated: false } });
+    } else {
+        res.status(404).json({ error: "Route not found" });
+    }
 });
 
 app.use((err, req, res, next) => {
     console.error(err.stack);
-    res.status(500).json({ error: "Server error" });
+    fs.appendFile(path.join(__dirname, 'server.log'), `[${new Date().toISOString()}] ERROR 500: ${err.message}\n`, () => {});
+
+    if (req.accepts('html')) {
+        res.status(500).render('500', { title: 'Ошибка сервера', error: err.message, user: { name: 'Guest', isAuthenticated: false } });
+    } else {
+        res.status(500).json({ error: "Server error" });
+    }
 });
 
 app.listen(port, () => {

@@ -1,0 +1,9 @@
+<h2><%= title %></h2>
+<% tweets.forEach(tweet => { %>
+    <div class="tweet-card">
+        <strong>@<%= tweet.author %></strong>
+        <p><%= tweet.content %></p>
+        <small><%= tweet.createdAt %></small><br>
+        <a href="/item/<%= tweet.id %><%= user.isAuthenticated ? '?auth=1' : '' %>">Подробнее...</a>
+    </div>
+<% }) %>

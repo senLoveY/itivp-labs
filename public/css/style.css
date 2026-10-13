@@ -1,0 +1,6 @@
+body { font-family: Arial; background: #f4f8fa; margin: 0; }
+header { background: #1da1f2; color: white; padding: 15px; }
+header a { color: white; text-decoration: none; margin-right: 15px; }
+main { max-width: 600px; margin: 20px auto; background: white; padding: 20px; border-radius: 8px; }
+.tweet-card { border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; }
+input, textarea { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; }
