@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const fs = require('fs');
+const fs = require('fs').promises;
 const path = require('path');
 const expressLayouts = require('express-ejs-layouts');
 
@@ -10,6 +10,8 @@ const { verifyToken, isAdmin, isNotBanned } = require('./middleware/auth');
 
 const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
+
+const limits = require('./limits.json');
 
 const app = express();
 const port = 3000;
@@ -23,10 +25,16 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('layout', 'layout');
 app.use(express.static(path.join(__dirname, 'public')));
 
-const fileLogger = (req, res, next) => {
-    const logString = `[${new Date().toISOString()}] Method: ${req.method}, URL: ${req.originalUrl}\n`;
-    fs.appendFile(path.join(__dirname, 'server.log'), logString, () => {});
-    next();
+const fileLogger = async (req, res, next) => {
+    const logPath = path.join(__dirname, 'server.log');
+    const logEntry = `[${new Date().toISOString()}] ${req.method} ${req.originalUrl}\n`;
+    
+    try {
+        await fs.appendFile(logPath, logEntry);
+        next();
+    } catch (error) {
+        next(new Error(`Критический сбой записи лога в файл: ${error.message}`));
+    }
 };
 app.use(fileLogger);
 
@@ -521,19 +529,32 @@ app.get('/add', fakeWebAuth, (req, res) => {
 
 app.post('/add', fakeWebAuth, async (req, res, next) => {
     try {
-        const { author, content } = req.body;
+
+        const author = req.body.author ? req.body.author.trim() : '';
+        const content = req.body.content ? req.body.content.trim() : '';
+
+        if (author.length < limits.author.minLength || author.length > limits.author.maxLength) {
+            throw new Error(`Имя автора не может состоять только из пробелов и должно быть от ${limits.author.minLength} до ${limits.author.maxLength} символов.`);
+        }
+
+        if (content.length < limits.content.minLength || content.length > limits.content.maxLength) {
+            throw new Error(`Текст поста не может быть пустым (или состоять из одних пробелов). Длина: от ${limits.content.minLength} до ${limits.content.maxLength} символов.`);
+        }
 
         if (content.toLowerCase() === 'ошибка') {
-            throw new Error("Имитация критической ошибки сервера!");
+            throw new Error("Имитация непредвиденного критического сбоя сервера!");
         }
 
-        if (author && content) {
-            await Tweet.create({ author, content, hashtags: [] });
-        }
+        await Tweet.create({ author, content, hashtags: [] });
+        
         res.redirect('/?auth=1');
     } catch (error) {
         next(error);
     }
+});
+
+app.get('/500-demo', fakeWebAuth, (req, res, next) => {
+    next(new Error("Демонстрация работы middleware для перехвата 500 ошибки!"));
 });
 
 app.use((req, res) => {
@@ -546,8 +567,7 @@ app.use((req, res) => {
 
 app.use((err, req, res, next) => {
     console.error(err.stack);
-    fs.appendFile(path.join(__dirname, 'server.log'), `[${new Date().toISOString()}] ERROR 500: ${err.message}\n`, () => {});
-
+    fs.appendFile(path.join(__dirname, 'server.log'), `[${new Date().toISOString()}] ERROR 500: ${err.message}\n`).catch(e => console.error("Не удалось записать лог ошибки:", e.message));
     if (req.accepts('html')) {
         res.status(500).render('500', { title: 'Ошибка сервера', error: err.message, user: { name: 'Guest', isAuthenticated: false } });
     } else {

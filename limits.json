@@ -1,0 +1,4 @@
+{
+  "author": { "minLength": 2, "maxLength": 50 },
+  "content": { "minLength": 1, "maxLength": 280 }
+}
