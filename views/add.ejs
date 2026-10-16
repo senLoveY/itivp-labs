@@ -1,6 +1,18 @@
 <h2><%= title %></h2>
-<form action="/add" method="POST">
-    Имя: <input type="text" name="author" value="<%= user.name %>" required><br><br>
-    Текст: <textarea name="content" required></textarea><br><br>
+<form action="/add" method="POST" class="tweet-form">
+    <label>Имя автора:</label>
+    <input type="text" name="author" value="<%= user.name %>" 
+           minlength="<%= limits.author.minLength %>" 
+           maxlength="<%= limits.author.maxLength %>" required>
+
+    <br><br>
+
+    <label>Текст поста:</label>
+    <textarea name="content" rows="4" 
+              minlength="<%= limits.content.minLength %>" 
+              maxlength="<%= limits.content.maxLength %>" required></textarea>
+
+    <br><br>
+
     <button type="submit">Опубликовать</button>
 </form>

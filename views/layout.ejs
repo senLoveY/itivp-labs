@@ -10,7 +10,6 @@
         <h1>Микроблог</h1>
         <nav>
             <a href="/">Лента</a>
-            <a href="/500-demo" style="color: red;">[Тест 500 ошибки]</a>
             <% if (user.isAuthenticated) { %>
                 <a href="/add?auth=1">Написать твит</a>
                 <span style="margin-left: 20px;">Привет, <%= user.name %>! <a href="/">Выйти</a></span>

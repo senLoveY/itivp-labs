@@ -524,7 +524,7 @@ app.get('/add', fakeWebAuth, (req, res) => {
     if (!req.fakeUser.isAuthenticated) {
         return res.send('<h3 style="text-align:center; margin-top:50px;">Доступ запрещен. <a href="/?auth=1">Войти как Администратор</a></h3>');
     }
-    res.render('add', { title: 'Добавить твит', user: req.fakeUser });
+    res.render('add', { title: 'Добавить твит', user: req.fakeUser, limits: limits }); 
 });
 
 app.post('/add', fakeWebAuth, async (req, res, next) => {
