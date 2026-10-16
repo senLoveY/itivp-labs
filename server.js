@@ -1,10 +1,9 @@
 require('dotenv').config();
 const express = require('express');
-const fs = require('fs').promises;
 const path = require('path');
 const expressLayouts = require('express-ejs-layouts');
 
-const { Tweet, User, LoginLog } = require('./models');
+const { Tweet, User, LoginLog, RequestLog  } = require('./models');
 const authRoutes = require('./routes/auth');
 const { verifyToken, isAdmin, isNotBanned } = require('./middleware/auth');
 
@@ -25,18 +24,19 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('layout', 'layout');
 app.use(express.static(path.join(__dirname, 'public')));
 
-const fileLogger = async (req, res, next) => {
-    const logPath = path.join(__dirname, 'server.log');
-    const logEntry = `[${new Date().toISOString()}] ${req.method} ${req.originalUrl}\n`;
-    
+const dbLogger = async (req, res, next) => {
     try {
-        await fs.appendFile(logPath, logEntry);
+        await RequestLog.create({
+            method: req.method,
+            url: req.originalUrl
+        });
         next();
     } catch (error) {
-        next(new Error(`Критический сбой записи лога в файл: ${error.message}`));
+        // Если БД отвалилась - пробрасываем в страницу 500
+        next(new Error(`Сбой записи лога в БД: ${error.message}`));
     }
 };
-app.use(fileLogger);
+app.use(dbLogger);
 
 const fakeWebAuth = (req, res, next) => {
     if (req.query.auth === '1') {
@@ -565,11 +565,20 @@ app.use((req, res) => {
     }
 });
 
-app.use((err, req, res, next) => {
+app.use(async (err, req, res, next) => {
     console.error(err.stack);
-    fs.appendFile(path.join(__dirname, 'server.log'), `[${new Date().toISOString()}] ERROR 500: ${err.message}\n`).catch(e => console.error("Не удалось записать лог ошибки:", e.message));
+    
+    try {
+        await RequestLog.create({
+            method: 'ERROR 500',
+            url: err.message
+        });
+    } catch (e) {
+        console.error("Даже лог в БД не записался:", e.message);
+    }
+
     if (req.accepts('html')) {
-        res.status(500).render('500', { title: 'Ошибка сервера', error: err.message, user: { name: 'Guest', isAuthenticated: false } });
+        res.status(500).render('500', { title: 'Ошибка сервера', error: err.message, user: req.fakeUser || { name: 'Guest', isAuthenticated: false } });
     } else {
         res.status(500).json({ error: "Server error" });
     }
