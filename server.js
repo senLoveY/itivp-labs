@@ -574,7 +574,7 @@ app.use(async (err, req, res, next) => {
             url: err.message
         });
     } catch (e) {
-        console.error("Даже лог в БД не записался:", e.message);
+        console.error("Лог в БД не записался:", e.message);
     }
 
     if (req.accepts('html')) {
