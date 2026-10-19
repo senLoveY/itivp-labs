@@ -1,55 +1,154 @@
 import { useState, useEffect } from 'react';
+import { fetchTweetsAPI, createTweetAPI, updateTweetAPI, deleteTweetAPI, likeTweetAPI } from './api';
+import { getCache, setCache, clearCache } from './cache';
 
-const defaultTweets = [
-  { id: 1, author: 'admin', content: 'Первый твит, проверка', likes: 0, date: '19.10.2026, 12:00:00' },
-  { id: 2, author: 'pavel', content: 'Делаю лабу по React, разбираюсь с useState и useEffect', likes: 3, date: '19.10.2026, 12:05:00' }
-];
+const PAGE_SIZE = 10;
+
+// временный id для твита, который ещё не сохранён на сервере
+function makeTempId() {
+  return Date.now();
+}
 
 function TweetList() {
   const [tweets, setTweets] = useState([]);
-  const [loaded, setLoaded] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [fromCache, setFromCache] = useState(false);
 
-  const [author, setAuthor] = useState('');
   const [text, setText] = useState('');
+  const [tags, setTags] = useState('');
+  const [sending, setSending] = useState(false);
+  const [notice, setNotice] = useState('');
   const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState('new');
 
   const [editId, setEditId] = useState(null);
   const [editText, setEditText] = useState('');
 
+  function loadTweets(searchText, signal) {
+    const cached = getCache(searchText);
+    if (cached) {
+      setTweets(cached);
+      setHasMore(cached.length === PAGE_SIZE);
+      setFromCache(true);
+      setLoading(false);
+      return;
+    }
+
+    fetchTweetsAPI({ search: searchText, limit: PAGE_SIZE, offset: 0 }, signal)
+      .then(res => {
+        setCache(searchText, res.data);
+        setTweets(res.data);
+        setFromCache(false);
+        setHasMore(res.data.length === PAGE_SIZE);
+        setLoading(false);
+      })
+      .catch(err => {
+        if (err.name === 'CanceledError') return;
+        setError(err.response?.data?.error || 'Не удалось загрузить твиты. Сервер недоступен.');
+        setLoading(false);
+      });
+  }
+
+  function loadMore() {
+    if (loading || loadingMore || !hasMore) return;
+    setLoadingMore(true);
+
+    fetchTweetsAPI({ search, limit: PAGE_SIZE, offset: tweets.length })
+      .then(res => {
+        setTweets(prev => [...prev, ...res.data.filter(t => !prev.some(p => p.id === t.id))]);
+        setHasMore(res.data.length === PAGE_SIZE);
+        setLoadingMore(false);
+      })
+      .catch(err => {
+        setNotice('Не удалось загрузить твиты: ' + errorText(err));
+        setLoadingMore(false);
+      });
+  }
+
+  // без массива зависимостей: обработчик пересоздаётся после каждого рендера
+  // и всегда видит актуальные tweets, hasMore и loadingMore
   useEffect(() => {
+    function handleScroll() {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
+        loadMore();
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  });
+
+  function retry() {
+    setLoading(true);
+    setError('');
+    loadTweets(search);
+  }
+
+  useEffect(() => {
+    const controller = new AbortController();
+
     const timer = setTimeout(() => {
-      const saved = localStorage.getItem('tweets');
-      setTweets(saved ? JSON.parse(saved) : defaultTweets);
-      setLoaded(true);
-    }, 1000);
+      setLoading(true);
+      setError('');
+      loadTweets(search, controller.signal);
+    }, search ? 500 : 0);
 
-    return () => clearTimeout(timer);
-  }, []);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [search]);
 
   useEffect(() => {
-    if (!loaded) return;
-    localStorage.setItem('tweets', JSON.stringify(tweets));
-  }, [tweets, loaded]);
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(''), 3000);
+    return () => clearTimeout(timer);
+  }, [notice]);
 
   useEffect(() => {
     document.title = `Твиты (${tweets.length})`;
   }, [tweets.length]);
 
-  function addTweet(e) {
-    e.preventDefault();
-    if (!author.trim() || !text.trim()) return;
+  function parseTags(str) {
+    return str
+      .split(' ')
+      .filter(t => t.trim())
+      .map(t => (t.startsWith('#') ? t : '#' + t));
+  }
 
-    const tweet = {
-      id: Date.now(),
-      author: author.trim(),
-      content: text.trim(),
-      likes: 0,
-      date: new Date().toLocaleString()
+  async function addTweet(e) {
+    e.preventDefault();
+    if (!text.trim() || sending) return;
+
+    const data = { content: text.trim(), hashtags: parseTags(tags) };
+    const tempId = makeTempId();
+    const tempTweet = {
+      ...data,
+      id: tempId,
+      author: localStorage.getItem('email'),
+      likesCount: 0,
+      createdAt: new Date().toISOString(),
+      pending: true
     };
 
-    setTweets(prev => [tweet, ...prev]);
+    setTweets(prev => [tempTweet, ...prev]);
     setText('');
+    setTags('');
+    setSending(true);
+
+    try {
+      const res = await createTweetAPI(data);
+      clearCache();
+      setTweets(prev => prev.map(t => (t.id === tempId ? res.data : t)));
+    } catch (err) {
+      setTweets(prev => prev.filter(t => t.id !== tempId));
+      setText(data.content);
+      setNotice('Не удалось добавить твит: ' + errorText(err));
+    } finally {
+      setSending(false);
+    }
   }
 
   function handleKeyDown(e) {
@@ -58,12 +157,36 @@ function TweetList() {
     }
   }
 
-  function deleteTweet(id) {
-    setTweets(prev => prev.filter(t => t.id !== id));
+  function errorText(err) {
+    return err.response?.data?.error || 'сервер недоступен';
   }
 
-  function likeTweet(id) {
-    setTweets(prev => prev.map(t => (t.id === id ? { ...t, likes: t.likes + 1 } : t)));
+  async function deleteTweet(id) {
+    const index = tweets.findIndex(t => t.id === id);
+    const removed = tweets[index];
+
+    setTweets(prev => prev.filter(t => t.id !== id));
+
+    try {
+      await deleteTweetAPI(id);
+      clearCache();
+    } catch (err) {
+      setTweets(prev => [...prev.slice(0, index), removed, ...prev.slice(index)]);
+      setNotice('Не удалось удалить твит: ' + errorText(err));
+    }
+  }
+
+  async function likeTweet(id) {
+    setTweets(prev => prev.map(t => (t.id === id ? { ...t, likesCount: t.likesCount + 1 } : t)));
+
+    try {
+      const res = await likeTweetAPI(id);
+      clearCache();
+      setTweets(prev => prev.map(t => (t.id === id ? { ...t, likesCount: res.data.likesCount } : t)));
+    } catch (err) {
+      setTweets(prev => prev.map(t => (t.id === id ? { ...t, likesCount: t.likesCount - 1 } : t)));
+      setNotice('Не удалось поставить лайк: ' + errorText(err));
+    }
   }
 
   function startEdit(tweet) {
@@ -71,33 +194,31 @@ function TweetList() {
     setEditText(tweet.content);
   }
 
-  function saveEdit() {
+  async function saveEdit() {
     if (!editText.trim()) return;
-    setTweets(prev => prev.map(t => (t.id === editId ? { ...t, content: editText.trim() } : t)));
-    setEditId(null);
-  }
 
-  const q = search.toLowerCase();
-  const shownTweets = tweets
-    .filter(t => t.content.toLowerCase().includes(q) || t.author.toLowerCase().includes(q))
-    .sort((a, b) => {
-      if (sortBy === 'old') return a.id - b.id;
-      if (sortBy === 'likes') return b.likes - a.likes;
-      return b.id - a.id;
-    });
+    const id = editId;
+    const old = tweets.find(t => t.id === id);
+    const newContent = editText.trim();
+
+    setTweets(prev => prev.map(t => (t.id === id ? { ...t, content: newContent } : t)));
+    setEditId(null);
+
+    try {
+      const res = await updateTweetAPI(id, { content: newContent, hashtags: old.hashtags });
+      clearCache();
+      setTweets(prev => prev.map(t => (t.id === id ? res.data : t)));
+    } catch (err) {
+      setTweets(prev => prev.map(t => (t.id === id ? old : t)));
+      setNotice('Не удалось изменить твит: ' + errorText(err));
+    }
+  }
 
   return (
     <div className="container">
       <h1>Микроблог</h1>
 
       <form onSubmit={addTweet} className="form">
-        <input
-          type="text"
-          placeholder="Имя"
-          value={author}
-          onChange={e => setAuthor(e.target.value)}
-          maxLength={50}
-        />
         <textarea
           placeholder="Текст твита (Enter - отправить)"
           value={text}
@@ -106,10 +227,16 @@ function TweetList() {
           rows={3}
           maxLength={280}
         />
+        <input
+          type="text"
+          placeholder="Теги через пробел, например #react #lab5"
+          value={tags}
+          onChange={e => setTags(e.target.value)}
+        />
         <div className="form-bottom">
           <span className="hint">{text.length}/280</span>
-          <button type="submit" className="btn-main" disabled={!author.trim() || !text.trim()}>
-            Отправить
+          <button type="submit" className="btn-main" disabled={!text.trim() || sending}>
+            {sending ? 'Отправка...' : 'Отправить'}
           </button>
         </div>
       </form>
@@ -121,23 +248,33 @@ function TweetList() {
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
-        <select value={sortBy} onChange={e => setSortBy(e.target.value)}>
-          <option value="new">Сначала новые</option>
-          <option value="old">Сначала старые</option>
-          <option value="likes">По лайкам</option>
-        </select>
       </div>
 
-      <h2>Твиты: {shownTweets.length}</h2>
+      {notice && <p className="error">{notice}</p>}
 
-      {!loaded && <p className="hint">Загрузка...</p>}
-      {loaded && shownTweets.length === 0 && <p className="hint">Ничего не найдено</p>}
+      <h2>
+        Загружено твитов: {tweets.length}
+        {fromCache && <span className="hint"> (из кэша)</span>}
+      </h2>
 
-      {shownTweets.map(tweet => (
+      {loading && <p className="hint">Загрузка...</p>}
+
+      {error && (
+        <div>
+          <p className="error">{error}</p>
+          <button onClick={retry}>Повторить</button>
+        </div>
+      )}
+
+      {!loading && !error && tweets.length === 0 && <p className="hint">Ничего не найдено</p>}
+
+      {tweets.map(tweet => (
         <div key={tweet.id} className="tweet">
           <div className="tweet-top">
             <b>{tweet.author}</b>
-            <span className="hint">{tweet.date}</span>
+            <span className="hint">
+              {tweet.pending ? 'отправляется...' : new Date(tweet.createdAt).toLocaleString()}
+            </span>
           </div>
 
           {editId === tweet.id ? (
@@ -155,13 +292,18 @@ function TweetList() {
             <p className="tweet-text">{tweet.content}</p>
           )}
 
+          {tweet.hashtags?.length > 0 && <p className="hint">{tweet.hashtags.join(' ')}</p>}
+
           <div className="tweet-buttons">
-            <button onClick={() => likeTweet(tweet.id)}>Лайк ({tweet.likes})</button>
-            <button onClick={() => startEdit(tweet)}>Изменить</button>
-            <button onClick={() => deleteTweet(tweet.id)}>Удалить</button>
+            <button onClick={() => likeTweet(tweet.id)} disabled={tweet.pending}>Лайк ({tweet.likesCount})</button>
+            <button onClick={() => startEdit(tweet)} disabled={tweet.pending}>Изменить</button>
+            <button onClick={() => deleteTweet(tweet.id)} disabled={tweet.pending}>Удалить</button>
           </div>
         </div>
       ))}
+
+      {loadingMore && <p className="hint">Загрузка...</p>}
+      {!loading && !error && !hasMore && tweets.length > 0 && <p className="hint">Больше твитов нет</p>}
     </div>
   );
 }
