@@ -249,12 +249,33 @@ app.post('/admin/users/:id/unban', verifyToken, isAdmin, async (req, res) => {
  * @swagger
  * /tweets:
  *   get:
- *     summary: Get a list of all tweets
+ *     summary: Get a list of tweets (with pagination and search)
+ *     description: Token is optional. If a valid token is sent, each tweet has liked = true when the current user liked it.
  *     tags: [Tweets]
- *     security: []
+ *     security:
+ *       - {}
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of tweets to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Number of tweets to skip
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search in content, author and hashtags (case-insensitive)
  *     responses:
  *       200:
- *         description: An array of tweets ordered by createdAt DESC
+ *         description: An array of tweets ordered by createdAt DESC, id DESC. Each tweet has the liked field (true or false)
  *       500:
  *         description: Database error while fetching tweets
  *
@@ -376,9 +397,6 @@ app.get('/tweets', async (req, res) => {
  *             required:
  *               - content
  *             properties:
- *               author:
- *                 type: string
- *                 example: admin@mail.com
  *               content:
  *                 type: string
  *                 example: Updated tweet content
