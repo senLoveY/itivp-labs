@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { loginAPI } from './api';
+import { loginAPI, registerAPI } from './api';
 
 function LoginForm({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isRegister, setIsRegister] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -13,6 +14,9 @@ function LoginForm({ onLogin }) {
     setLoading(true);
 
     try {
+      if (isRegister) {
+        await registerAPI(email, password);
+      }
       const res = await loginAPI(email, password);
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('email', email);
@@ -26,7 +30,7 @@ function LoginForm({ onLogin }) {
 
   return (
     <div className="container">
-      <h1>Вход</h1>
+      <h1>{isRegister ? 'Регистрация' : 'Вход'}</h1>
 
       <form onSubmit={handleSubmit} className="form login-form">
         <input
@@ -42,11 +46,25 @@ function LoginForm({ onLogin }) {
           onChange={e => setPassword(e.target.value)}
         />
         <button type="submit" className="btn-main" disabled={loading || !email || !password}>
-          {loading ? 'Вход...' : 'Войти'}
+          {loading ? 'Подождите...' : isRegister ? 'Зарегистрироваться' : 'Войти'}
         </button>
       </form>
 
       {error && <p className="error">{error}</p>}
+
+      <p className="hint">
+        {isRegister ? 'Уже есть аккаунт? ' : 'Нет аккаунта? '}
+        <a
+          href="#"
+          onClick={e => {
+            e.preventDefault();
+            setIsRegister(!isRegister);
+            setError('');
+          }}
+        >
+          {isRegister ? 'Войти' : 'Зарегистрироваться'}
+        </a>
+      </p>
     </div>
   );
 }

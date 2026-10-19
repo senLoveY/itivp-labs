@@ -13,6 +13,7 @@ api.interceptors.request.use((config) => {
 });
 
 export const loginAPI = (email, password) => api.post('/auth/login', { email, password });
+export const registerAPI = (email, password) => api.post('/auth/register', { email, password });
 
 export const fetchTweetsAPI = (params, signal) => api.get('/tweets', { params, signal });
 export const createTweetAPI = (data) => api.post('/tweets', data);
