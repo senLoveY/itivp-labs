@@ -90,3 +90,20 @@ button {
 .tweet-buttons {
   margin-top: 8px;
 }
+
+.login-form {
+  max-width: 300px;
+}
+
+.error {
+  color: #c53030;
+}
+
+.user-bar {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 10px 20px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
