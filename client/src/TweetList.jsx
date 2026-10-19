@@ -16,7 +16,6 @@ function TweetList() {
   const [error, setError] = useState('');
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [fromCache, setFromCache] = useState(false);
 
   const [text, setText] = useState('');
   const [tags, setTags] = useState('');
@@ -32,7 +31,6 @@ function TweetList() {
     if (cached) {
       setTweets(cached);
       setHasMore(cached.length === PAGE_SIZE);
-      setFromCache(true);
       setLoading(false);
       return;
     }
@@ -41,7 +39,6 @@ function TweetList() {
       .then(res => {
         setCache(searchText, res.data);
         setTweets(res.data);
-        setFromCache(false);
         setHasMore(res.data.length === PAGE_SIZE);
         setLoading(false);
       })
@@ -257,13 +254,16 @@ function TweetList() {
         />
         <p className="hint">
           Загружено твитов: {tweets.length}
-          {fromCache && ' (из кэша)'}
         </p>
       </div>
 
       {notice && <p className="error message">{notice}</p>}
 
-      {loading && <p className="hint message">Загрузка...</p>}
+      {loading && (
+        <div className="loader">
+          <span className="spinner"></span> Загрузка...
+        </div>
+      )}
 
       {error && (
         <div className="message">
@@ -330,7 +330,11 @@ function TweetList() {
         </div>
       ))}
 
-      {loadingMore && <p className="hint message">Загрузка...</p>}
+      {loadingMore && (
+        <div className="loader">
+          <span className="spinner"></span> Загрузка...
+        </div>
+      )}
       {!loading && !error && !hasMore && tweets.length > 0 && <p className="hint message">Больше твитов нет</p>}
     </div>
   );
