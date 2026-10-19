@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
-const { Tweet, User, LoginLog, sequelize } = require('./models');
+const { Tweet, User, LoginLog, Like, sequelize } = require('./models');
+const jwt = require('jsonwebtoken');
 const authRoutes = require('./routes/auth');
 const { verifyToken, isAdmin, isNotBanned} = require('./middleware/auth');
 
@@ -11,6 +12,19 @@ const cors = require('cors');
 const { Op } = require('sequelize');
 
 const app = express();
+
+// пользователь из токена, если он есть (для открытых маршрутов)
+const getUserFromToken = (req) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) return null;
+
+    try {
+        return jwt.verify(token, process.env.JWT_SECRET);
+    } catch (error) {
+        return null;
+    }
+};
 app.use(cors());
 
 const swaggerOptions = {
@@ -301,8 +315,17 @@ app.get('/tweets', async (req, res) => {
             limit: limit,
             offset: offset
         });
-        
-        res.status(200).json(tweets);
+
+        let likedIds = [];
+        const user = getUserFromToken(req);
+        if (user) {
+            const likes = await Like.findAll({
+                where: { userId: user.id, tweetId: tweets.map(t => t.id) }
+            });
+            likedIds = likes.map(l => l.tweetId);
+        }
+
+        res.status(200).json(tweets.map(t => ({ ...t.toJSON(), liked: likedIds.includes(t.id) })));
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Database error while fetching tweets" });
@@ -494,7 +517,8 @@ app.delete('/tweets/:id', verifyToken, isNotBanned, async (req, res) => {
  * @swagger
  * /tweets/{id}/like:
  *   post:
- *     summary: Like a tweet (increases likesCount by 1)
+ *     summary: Like or unlike a tweet (one like per user)
+ *     description: If the user has not liked the tweet, a like is added. If the like already exists, it is removed.
  *     tags: [Tweets]
  *     security:
  *       - bearerAuth: []
@@ -507,7 +531,7 @@ app.delete('/tweets/:id', verifyToken, isNotBanned, async (req, res) => {
  *         description: Tweet ID
  *     responses:
  *       200:
- *         description: Tweet liked, returns updated tweet
+ *         description: Returns updated tweet with the liked field (true or false)
  *       401:
  *         description: Token not provided
  *       403:
@@ -525,10 +549,18 @@ app.post('/tweets/:id/like', verifyToken, isNotBanned, async (req, res) => {
             return res.status(404).json({ error: "Tweet not found" });
         }
 
-        await tweet.increment('likesCount');
-        await tweet.reload();
+        const existing = await Like.findOne({ where: { userId: req.user.id, tweetId: tweet.id } });
 
-        res.status(200).json(tweet);
+        if (existing) {
+            await existing.destroy();
+            await tweet.decrement('likesCount');
+        } else {
+            await Like.create({ userId: req.user.id, tweetId: tweet.id });
+            await tweet.increment('likesCount');
+        }
+
+        await tweet.reload();
+        res.status(200).json({ ...tweet.toJSON(), liked: !existing });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Database error while liking tweet" });
