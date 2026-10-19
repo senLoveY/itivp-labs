@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 
-// начальные данные, если в localStorage ничего нет
 const defaultTweets = [
   { id: 1, author: 'admin', content: 'Первый твит, проверка', likes: 0, date: '19.10.2026, 12:00:00' },
   { id: 2, author: 'pavel', content: 'Делаю лабу по React, разбираюсь с useState и useEffect', likes: 3, date: '19.10.2026, 12:05:00' }
@@ -8,7 +7,6 @@ const defaultTweets = [
 
 function TweetList() {
   const [tweets, setTweets] = useState([]);
-  // флаг, что данные уже загружены (чтобы не затереть localStorage пустым массивом)
   const [loaded, setLoaded] = useState(false);
 
   const [author, setAuthor] = useState('');
@@ -16,11 +14,9 @@ function TweetList() {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('new');
 
-  // для редактирования
   const [editId, setEditId] = useState(null);
   const [editText, setEditText] = useState('');
 
-  // загрузка из localStorage при монтировании (с задержкой 1 сек, как будто с сервера)
   useEffect(() => {
     const timer = setTimeout(() => {
       const saved = localStorage.getItem('tweets');
@@ -31,13 +27,11 @@ function TweetList() {
     return () => clearTimeout(timer);
   }, []);
 
-  // сохраняем список при каждом изменении
   useEffect(() => {
     if (!loaded) return;
     localStorage.setItem('tweets', JSON.stringify(tweets));
   }, [tweets, loaded]);
 
-  // меняем заголовок вкладки
   useEffect(() => {
     document.title = `Твиты (${tweets.length})`;
   }, [tweets.length]);
@@ -58,7 +52,6 @@ function TweetList() {
     setText('');
   }
 
-  // Enter - отправить, Shift+Enter - новая строка
   function handleKeyDown(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
       addTweet(e);
@@ -84,7 +77,6 @@ function TweetList() {
     setEditId(null);
   }
 
-  // фильтрация по тексту и автору
   const q = search.toLowerCase();
   const shownTweets = tweets
     .filter(t => t.content.toLowerCase().includes(q) || t.author.toLowerCase().includes(q))
