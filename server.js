@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const { Tweet, User, LoginLog } = require('./models');
+const { Tweet, User, LoginLog, sequelize } = require('./models');
 const authRoutes = require('./routes/auth');
 const { verifyToken, isAdmin, isNotBanned} = require('./middleware/auth');
 
@@ -290,13 +290,14 @@ app.get('/tweets', async (req, res) => {
         const whereClause = search ? {
             [Op.or]: [
                 { content: { [Op.iLike]: `%${search}%` } },
-                { author: { [Op.iLike]: `%${search}%` } }
+                { author: { [Op.iLike]: `%${search}%` } },
+                sequelize.where(sequelize.cast(sequelize.col('hashtags'), 'text'), { [Op.iLike]: `%${search}%` })
             ]
         } : {};
 
         const tweets = await Tweet.findAll({
             where: whereClause,
-            order: [['createdAt', 'DESC']],
+            order: [['createdAt', 'DESC'], ['id', 'DESC']],
             limit: limit,
             offset: offset
         });
@@ -486,6 +487,51 @@ app.delete('/tweets/:id', verifyToken, isNotBanned, async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Database error while deleting tweet" });
+    }
+});
+
+/**
+ * @swagger
+ * /tweets/{id}/like:
+ *   post:
+ *     summary: Like a tweet (increases likesCount by 1)
+ *     tags: [Tweets]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Tweet ID
+ *     responses:
+ *       200:
+ *         description: Tweet liked, returns updated tweet
+ *       401:
+ *         description: Token not provided
+ *       403:
+ *         description: Invalid/expired token or account is banned
+ *       404:
+ *         description: Tweet not found
+ *       500:
+ *         description: Database error while liking tweet
+ */
+app.post('/tweets/:id/like', verifyToken, isNotBanned, async (req, res) => {
+    try {
+        const tweet = await Tweet.findByPk(req.params.id);
+
+        if (!tweet) {
+            return res.status(404).json({ error: "Tweet not found" });
+        }
+
+        await tweet.increment('likesCount');
+        await tweet.reload();
+
+        res.status(200).json(tweet);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Database error while liking tweet" });
     }
 });
 
