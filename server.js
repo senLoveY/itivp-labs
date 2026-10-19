@@ -7,7 +7,11 @@ const { verifyToken, isAdmin, isNotBanned} = require('./middleware/auth');
 const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 
+const cors = require('cors');
+const { Op } = require('sequelize');
+
 const app = express();
+app.use(cors());
 
 const swaggerOptions = {
     swaggerDefinition: {
@@ -279,9 +283,24 @@ app.post('/admin/users/:id/unban', verifyToken, isAdmin, async (req, res) => {
  */
 app.get('/tweets', async (req, res) => {
     try {
+        const limit = parseInt(req.query.limit) || 10;
+        const offset = parseInt(req.query.offset) || 0;
+        const search = req.query.search || '';
+
+        const whereClause = search ? {
+            [Op.or]: [
+                { content: { [Op.iLike]: `%${search}%` } },
+                { author: { [Op.iLike]: `%${search}%` } }
+            ]
+        } : {};
+
         const tweets = await Tweet.findAll({
-            order: [['createdAt', 'DESC']]
+            where: whereClause,
+            order: [['createdAt', 'DESC']],
+            limit: limit,
+            offset: offset
         });
+        
         res.status(200).json(tweets);
     } catch (error) {
         console.error(error);
