@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { loginAPI, registerAPI } from './api';
+import { clearCache } from './cache';
 
 function LoginForm({ onLogin }) {
   const [email, setEmail] = useState('');
@@ -20,6 +21,7 @@ function LoginForm({ onLogin }) {
       const res = await loginAPI(email, password);
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('email', email);
+      clearCache();
       onLogin(res.data.token);
     } catch (err) {
       setError(err.response?.data?.error || 'Сервер недоступен');

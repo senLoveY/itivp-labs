@@ -12,6 +12,13 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// данные пользователя из JWT-токена: { id, email, role }
+export function getCurrentUser() {
+  const token = localStorage.getItem('token');
+  if (!token) return null;
+  return JSON.parse(atob(token.split('.')[1]));
+}
+
 export const loginAPI = (email, password) => api.post('/auth/login', { email, password });
 export const registerAPI = (email, password) => api.post('/auth/register', { email, password });
 

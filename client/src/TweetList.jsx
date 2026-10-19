@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { fetchTweetsAPI, createTweetAPI, updateTweetAPI, deleteTweetAPI, likeTweetAPI } from './api';
+import { fetchTweetsAPI, createTweetAPI, updateTweetAPI, deleteTweetAPI, likeTweetAPI, getCurrentUser } from './api';
 import { getCache, setCache, clearCache } from './cache';
 
 const PAGE_SIZE = 10;
@@ -10,6 +10,7 @@ function makeTempId() {
 }
 
 function TweetList() {
+  const user = getCurrentUser();
   const [tweets, setTweets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -130,6 +131,7 @@ function TweetList() {
       author: localStorage.getItem('email'),
       likesCount: 0,
       createdAt: new Date().toISOString(),
+      liked: false,
       pending: true
     };
 
@@ -141,7 +143,7 @@ function TweetList() {
     try {
       const res = await createTweetAPI(data);
       clearCache();
-      setTweets(prev => prev.map(t => (t.id === tempId ? res.data : t)));
+      setTweets(prev => prev.map(t => (t.id === tempId ? { ...res.data, liked: false } : t)));
     } catch (err) {
       setTweets(prev => prev.filter(t => t.id !== tempId));
       setText(data.content);
@@ -177,16 +179,23 @@ function TweetList() {
   }
 
   async function likeTweet(id) {
-    setTweets(prev => prev.map(t => (t.id === id ? { ...t, likesCount: t.likesCount + 1 } : t)));
+    const old = tweets.find(t => t.id === id);
+    const liked = !old.liked;
+
+    setTweets(prev => prev.map(t => (t.id === id ? { ...t, liked, likesCount: t.likesCount + (liked ? 1 : -1) } : t)));
 
     try {
       const res = await likeTweetAPI(id);
       clearCache();
-      setTweets(prev => prev.map(t => (t.id === id ? { ...t, likesCount: res.data.likesCount } : t)));
+      setTweets(prev => prev.map(t => (t.id === id ? { ...t, liked: res.data.liked, likesCount: res.data.likesCount } : t)));
     } catch (err) {
-      setTweets(prev => prev.map(t => (t.id === id ? { ...t, likesCount: t.likesCount - 1 } : t)));
+      setTweets(prev => prev.map(t => (t.id === id ? { ...t, liked: old.liked, likesCount: old.likesCount } : t)));
       setNotice('Не удалось поставить лайк: ' + errorText(err));
     }
+  }
+
+  function canChange(tweet) {
+    return tweet.author === user.email || user.role === 'admin';
   }
 
   function startEdit(tweet) {
@@ -207,7 +216,7 @@ function TweetList() {
     try {
       const res = await updateTweetAPI(id, { content: newContent, hashtags: old.hashtags });
       clearCache();
-      setTweets(prev => prev.map(t => (t.id === id ? res.data : t)));
+      setTweets(prev => prev.map(t => (t.id === id ? { ...res.data, liked: t.liked } : t)));
     } catch (err) {
       setTweets(prev => prev.map(t => (t.id === id ? old : t)));
       setNotice('Не удалось изменить твит: ' + errorText(err));
@@ -295,9 +304,19 @@ function TweetList() {
           {tweet.hashtags?.length > 0 && <p className="hint">{tweet.hashtags.join(' ')}</p>}
 
           <div className="tweet-buttons">
-            <button onClick={() => likeTweet(tweet.id)} disabled={tweet.pending}>Лайк ({tweet.likesCount})</button>
-            <button onClick={() => startEdit(tweet)} disabled={tweet.pending}>Изменить</button>
-            <button onClick={() => deleteTweet(tweet.id)} disabled={tweet.pending}>Удалить</button>
+            <button
+              className={tweet.liked ? 'like-btn liked' : 'like-btn'}
+              onClick={() => likeTweet(tweet.id)}
+              disabled={tweet.pending}
+            >
+              {tweet.liked ? '♥' : '♡'} {tweet.likesCount}
+            </button>
+            {canChange(tweet) && (
+              <>
+                <button onClick={() => startEdit(tweet)} disabled={tweet.pending}>Изменить</button>
+                <button onClick={() => deleteTweet(tweet.id)} disabled={tweet.pending}>Удалить</button>
+              </>
+            )}
           </div>
         </div>
       ))}

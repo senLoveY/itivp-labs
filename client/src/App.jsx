@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import TweetList from './TweetList';
 import LoginForm from './LoginForm';
+import { clearCache } from './cache';
 import './App.css';
 
 function App() {
@@ -9,6 +10,7 @@ function App() {
   function logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('email');
+    clearCache();
     setToken(null);
   }
 

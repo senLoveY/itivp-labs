@@ -112,3 +112,8 @@ button {
   justify-content: space-between;
   align-items: center;
 }
+
+.like-btn.liked {
+  color: #e0245e;
+  border-color: #e0245e;
+}
