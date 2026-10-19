@@ -4,7 +4,6 @@ import { getCache, setCache, clearCache } from './cache';
 
 const PAGE_SIZE = 10;
 
-// временный id для твита, который ещё не сохранён на сервере
 function makeTempId() {
   return Date.now();
 }
@@ -65,8 +64,6 @@ function TweetList() {
       });
   }
 
-  // без массива зависимостей: обработчик пересоздаётся после каждого рендера
-  // и всегда видит актуальные tweets, hasMore и loadingMore
   useEffect(() => {
     function handleScroll() {
       if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
