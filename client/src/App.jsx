@@ -20,10 +20,15 @@ function App() {
 
   return (
     <div>
-      <div className="user-bar">
-        <span className="hint">Вы вошли как {localStorage.getItem('email')}</span>
-        <button onClick={logout}>Выйти</button>
-      </div>
+      <header className="header">
+        <div className="header-inner">
+          <b className="logo">Микроблог</b>
+          <div>
+            <span className="hint">{localStorage.getItem('email')}</span>
+            <button onClick={logout}>Выйти</button>
+          </div>
+        </div>
+      </header>
       <TweetList />
     </div>
   );

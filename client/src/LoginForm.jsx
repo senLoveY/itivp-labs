@@ -31,7 +31,7 @@ function LoginForm({ onLogin }) {
   }
 
   return (
-    <div className="container login">
+    <div className="login">
       <h1>{isRegister ? 'Регистрация' : 'Вход'}</h1>
 
       <form onSubmit={handleSubmit} className="form login-form">

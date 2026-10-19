@@ -1,54 +1,114 @@
-.container {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-h1 {
-  margin-top: 0;
-}
-
-h2 {
-  font-size: 18px;
-}
+/* общие элементы */
 
 input,
-textarea,
-select {
+textarea {
   font: inherit;
-  padding: 6px;
-  border: 1px solid #aaa;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
   box-sizing: border-box;
+  outline: none;
+}
+
+input:focus,
+textarea:focus {
+  border-color: #111;
 }
 
 textarea {
-  width: 100%;
   resize: vertical;
 }
 
 button {
   font: inherit;
-  padding: 4px 10px;
-  margin-right: 5px;
+  font-size: 14px;
+  padding: 6px 12px;
+  margin-right: 4px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: #555;
   cursor: pointer;
 }
 
-.btn-main {
-  background: #2b6cb0;
-  color: white;
-  border: 1px solid #2b6cb0;
+button:hover {
+  background: #eee;
 }
 
-.btn-main:disabled {
+button:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+.btn-main {
+  background: #111;
+  color: #fff;
+}
+
+.btn-main:hover {
+  background: #333;
+}
+
+.hint {
+  color: #888;
+  font-size: 13px;
+}
+
+.error {
+  color: #c53030;
+}
+
+a {
+  color: #111;
+}
+
+/* шапка */
+
+.header {
+  background: #fff;
+  border-bottom: 1px solid #e5e5e5;
+  position: sticky;
+  top: 0;
+}
+
+.header-inner {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 10px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-size: 18px;
+}
+
+.header .hint {
+  margin-right: 8px;
+}
+
+/* лента */
+
+.feed {
+  max-width: 600px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: #fff;
+  border-left: 1px solid #e5e5e5;
+  border-right: 1px solid #e5e5e5;
 }
 
 .form {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-bottom: 20px;
+}
+
+.compose {
+  padding: 16px;
+  border-bottom: 1px solid #e5e5e5;
 }
 
 .form-bottom {
@@ -57,63 +117,102 @@ button {
   align-items: center;
 }
 
-.toolbar {
-  display: flex;
-  gap: 8px;
+.search {
+  padding: 12px 16px 0;
+  border-bottom: 1px solid #e5e5e5;
 }
 
-.toolbar input {
-  flex: 1;
+.message {
+  padding: 0 16px;
 }
 
-.hint {
-  color: #777;
-  font-size: 14px;
-}
+/* твит */
 
 .tweet {
-  border: 1px solid #ccc;
-  padding: 10px;
-  margin-bottom: 10px;
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.avatar {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #e5e5e5;
+  color: #555;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tweet-body {
+  flex: 1;
+  min-width: 0;
 }
 
 .tweet-top {
   display: flex;
   justify-content: space-between;
+  gap: 8px;
+}
+
+.tweet-body textarea {
+  margin: 6px 0;
 }
 
 .tweet-text {
+  margin: 6px 0;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
-.tweet-buttons {
-  margin-top: 8px;
-}
-
-.login {
-  text-align: center;
-}
-
-.login-form {
-  max-width: 300px;
-  margin: 0 auto 20px;
-}
-
-.error {
-  color: #c53030;
-}
-
-.user-bar {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 10px 20px 0;
+.tags {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.tag {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #f0f0f0;
+  color: #555;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tag:hover {
+  background: #e0e0e0;
+}
+
+.tweet-buttons {
+  margin-left: -12px;
 }
 
 .like-btn.liked {
   color: #e0245e;
-  border-color: #e0245e;
+}
+
+/* вход */
+
+.login {
+  max-width: 340px;
+  margin: 80px auto;
+  padding: 24px;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.login h1 {
+  margin-top: 0;
+}
+
+.login-form {
+  margin-bottom: 16px;
 }

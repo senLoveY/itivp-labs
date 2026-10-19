@@ -224,10 +224,8 @@ function TweetList() {
   }
 
   return (
-    <div className="container">
-      <h1>Микроблог</h1>
-
-      <form onSubmit={addTweet} className="form">
+    <div className="feed">
+      <form onSubmit={addTweet} className="form compose">
         <textarea
           placeholder="Текст твита (Enter - отправить)"
           value={text}
@@ -250,79 +248,90 @@ function TweetList() {
         </div>
       </form>
 
-      <div className="toolbar">
+      <div className="search">
         <input
           type="text"
           placeholder="Поиск"
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
+        <p className="hint">
+          Загружено твитов: {tweets.length}
+          {fromCache && ' (из кэша)'}
+        </p>
       </div>
 
-      {notice && <p className="error">{notice}</p>}
+      {notice && <p className="error message">{notice}</p>}
 
-      <h2>
-        Загружено твитов: {tweets.length}
-        {fromCache && <span className="hint"> (из кэша)</span>}
-      </h2>
-
-      {loading && <p className="hint">Загрузка...</p>}
+      {loading && <p className="hint message">Загрузка...</p>}
 
       {error && (
-        <div>
+        <div className="message">
           <p className="error">{error}</p>
-          <button onClick={retry}>Повторить</button>
+          <button className="btn-main" onClick={retry}>Повторить</button>
         </div>
       )}
 
-      {!loading && !error && tweets.length === 0 && <p className="hint">Ничего не найдено</p>}
+      {!loading && !error && tweets.length === 0 && <p className="hint message">Ничего не найдено</p>}
 
       {tweets.map(tweet => (
         <div key={tweet.id} className="tweet">
-          <div className="tweet-top">
-            <b>{tweet.author}</b>
-            <span className="hint">
-              {tweet.pending ? 'отправляется...' : new Date(tweet.createdAt).toLocaleString()}
-            </span>
-          </div>
+          <div className="avatar">{tweet.author?.[0]?.toUpperCase()}</div>
 
-          {editId === tweet.id ? (
-            <div>
-              <textarea
-                value={editText}
-                onChange={e => setEditText(e.target.value)}
-                rows={3}
-                maxLength={280}
-              />
-              <button onClick={saveEdit}>Сохранить</button>
-              <button onClick={() => setEditId(null)}>Отмена</button>
+          <div className="tweet-body">
+            <div className="tweet-top">
+              <b>{tweet.author}</b>
+              <span className="hint">
+                {tweet.pending ? 'отправляется...' : new Date(tweet.createdAt).toLocaleString()}
+              </span>
             </div>
-          ) : (
-            <p className="tweet-text">{tweet.content}</p>
-          )}
 
-          {tweet.hashtags?.length > 0 && <p className="hint">{tweet.hashtags.join(' ')}</p>}
-
-          <div className="tweet-buttons">
-            <button
-              className={tweet.liked ? 'like-btn liked' : 'like-btn'}
-              onClick={() => likeTweet(tweet.id)}
-              disabled={tweet.pending}
-            >
-              {tweet.liked ? '♥' : '♡'} {tweet.likesCount}
-            </button>
-            {canChange(tweet) && (
-              <>
-                <button onClick={() => startEdit(tweet)} disabled={tweet.pending}>Изменить</button>
-                <button onClick={() => deleteTweet(tweet.id)} disabled={tweet.pending}>Удалить</button>
-              </>
+            {editId === tweet.id ? (
+              <div>
+                <textarea
+                  value={editText}
+                  onChange={e => setEditText(e.target.value)}
+                  rows={3}
+                  maxLength={280}
+                />
+                <button className="btn-main" onClick={saveEdit}>Сохранить</button>
+                <button onClick={() => setEditId(null)}>Отмена</button>
+              </div>
+            ) : (
+              <p className="tweet-text">{tweet.content}</p>
             )}
+
+            {tweet.hashtags?.length > 0 && (
+              <div className="tags">
+                {tweet.hashtags.map(tag => (
+                  <span key={tag} className="tag" onClick={() => setSearch(tag)}>
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="tweet-buttons">
+              <button
+                className={tweet.liked ? 'like-btn liked' : 'like-btn'}
+                onClick={() => likeTweet(tweet.id)}
+                disabled={tweet.pending}
+              >
+                {tweet.liked ? '♥' : '♡'} {tweet.likesCount}
+              </button>
+              {canChange(tweet) && (
+                <>
+                  <button onClick={() => startEdit(tweet)} disabled={tweet.pending}>Изменить</button>
+                  <button onClick={() => deleteTweet(tweet.id)} disabled={tweet.pending}>Удалить</button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       ))}
 
-      {loadingMore && <p className="hint">Загрузка...</p>}
-      {!loading && !error && !hasMore && tweets.length > 0 && <p className="hint">Больше твитов нет</p>}
+      {loadingMore && <p className="hint message">Загрузка...</p>}
+      {!loading && !error && !hasMore && tweets.length > 0 && <p className="hint message">Больше твитов нет</p>}
     </div>
   );
 }
