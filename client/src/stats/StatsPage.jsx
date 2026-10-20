@@ -4,7 +4,6 @@ import { Bar } from 'react-chartjs-2';
 import { fetchMyStatsAPI } from '../api';
 import Loader from '../components/Loader';
 
-// подключаем только то, что нужно для столбчатых графиков
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 
 const BAR_COLOR = '#333';
@@ -13,7 +12,6 @@ function shorten(text, length = 30) {
   return text.length > length ? text.slice(0, length) + '…' : text;
 }
 
-// общие настройки горизонтального графика; fullLabels – полные подписи для подсказки
 function barOptions(fullLabels) {
   return {
     indexAxis: 'y',
