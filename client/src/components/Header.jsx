@@ -1,12 +1,13 @@
 function Header({ email, isAdmin, page, onChangePage, onLogout }) {
   const pages = [
     { id: 'feed', title: 'Лента' },
+    { id: 'mine', title: 'Мои посты' },
     { id: 'stats', title: 'Статистика' }
   ];
   if (isAdmin) pages.push({ id: 'admin', title: 'Админка' });
 
   return (
-    <header className={page === 'feed' ? 'header' : 'header header-wide'}>
+    <header className="header">
       <div className="header-inner">
         <div className="header-left">
           <b className="logo">Микроблог</b>

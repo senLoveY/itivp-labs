@@ -11,7 +11,8 @@ function makeTempId() {
   return Date.now();
 }
 
-function TweetList() {
+// author – показывать только твиты этого автора ("Мои посты"), showSort – выбор сортировки
+function TweetList({ author = '', title = '', showSort = false }) {
   const user = getCurrentUser();
   const [tweets, setTweets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,9 +23,11 @@ function TweetList() {
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState('');
   const [search, setSearch] = useState('');
+  const [sort, setSort] = useState('new');
 
   function loadTweets(searchText, signal) {
-    const cached = getCache(searchText);
+    const cacheKey = `${author}|${sort}|${searchText}`;
+    const cached = getCache(cacheKey);
     if (cached) {
       setTweets(cached);
       setHasMore(cached.length === PAGE_SIZE);
@@ -32,9 +35,9 @@ function TweetList() {
       return;
     }
 
-    fetchTweetsAPI({ search: searchText, limit: PAGE_SIZE, offset: 0 }, signal)
+    fetchTweetsAPI({ search: searchText, author, sort, limit: PAGE_SIZE, offset: 0 }, signal)
       .then(res => {
-        setCache(searchText, res.data);
+        setCache(cacheKey, res.data);
         setTweets(res.data);
         setHasMore(res.data.length === PAGE_SIZE);
         setLoading(false);
@@ -50,7 +53,7 @@ function TweetList() {
     if (loading || loadingMore || !hasMore) return;
     setLoadingMore(true);
 
-    fetchTweetsAPI({ search, limit: PAGE_SIZE, offset: tweets.length })
+    fetchTweetsAPI({ search, author, sort, limit: PAGE_SIZE, offset: tweets.length })
       .then(res => {
         setTweets(prev => [...prev, ...res.data.filter(t => !prev.some(p => p.id === t.id))]);
         setHasMore(res.data.length === PAGE_SIZE);
@@ -92,7 +95,9 @@ function TweetList() {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [search]);
+    // загрузка зависит только от строки поиска и сортировки
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, sort]);
 
   useEffect(() => {
     if (!notice) return;
@@ -191,15 +196,26 @@ function TweetList() {
 
   return (
     <div className="feed">
+      {title && <h2 className="page-title">{title}</h2>}
+
       <TweetForm sending={sending} onAdd={addTweet} />
 
       <div className="search">
-        <input
-          type="text"
-          placeholder="Поиск"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+        <div className="search-row">
+          <input
+            type="text"
+            placeholder="Поиск"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          {showSort && (
+            <select value={sort} onChange={e => setSort(e.target.value)}>
+              <option value="new">Сначала новые</option>
+              <option value="old">Сначала старые</option>
+              <option value="likes">По лайкам</option>
+            </select>
+          )}
+        </div>
         <p className="hint">
           Загружено твитов: {tweets.length}
         </p>

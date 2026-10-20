@@ -35,7 +35,10 @@ function App() {
         onChangePage={setPage}
         onLogout={logout}
       />
-      {page === 'feed' && <TweetList />}
+      {page === 'feed' && <TweetList key="feed" />}
+      {page === 'mine' && (
+        <TweetList key="mine" author={localStorage.getItem('email')} title="Мои посты" showSort />
+      )}
       {page === 'stats' && <StatsPage />}
       {page === 'admin' && isAdmin && <AdminPanel />}
     </div>
