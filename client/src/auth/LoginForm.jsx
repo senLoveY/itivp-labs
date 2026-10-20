@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { loginAPI, registerAPI } from './api';
-import { clearCache } from './cache';
+import { loginAPI, registerAPI } from '../api';
+import { clearCache } from '../cache';
 
 function LoginForm({ onLogin }) {
   const [email, setEmail] = useState('');

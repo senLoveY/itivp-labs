@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
-import { fetchTweetsAPI, createTweetAPI, updateTweetAPI, deleteTweetAPI, likeTweetAPI, getCurrentUser } from './api';
-import { getCache, setCache, clearCache } from './cache';
+import { fetchTweetsAPI, createTweetAPI, updateTweetAPI, deleteTweetAPI, likeTweetAPI, getCurrentUser } from '../api';
+import { getCache, setCache, clearCache } from '../cache';
+import Loader from '../components/Loader';
+import TweetForm from './TweetForm';
+import TweetItem from './TweetItem';
 
 const PAGE_SIZE = 10;
 
@@ -16,14 +19,9 @@ function TweetList() {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const [text, setText] = useState('');
-  const [tags, setTags] = useState('');
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState('');
   const [search, setSearch] = useState('');
-
-  const [editId, setEditId] = useState(null);
-  const [editText, setEditText] = useState('');
 
   function loadTweets(searchText, signal) {
     const cached = getCache(searchText);
@@ -106,18 +104,9 @@ function TweetList() {
     document.title = `Твиты (${tweets.length})`;
   }, [tweets.length]);
 
-  function parseTags(str) {
-    return str
-      .split(' ')
-      .filter(t => t.trim())
-      .map(t => (t.startsWith('#') ? t : '#' + t));
-  }
-
-  async function addTweet(e) {
-    e.preventDefault();
-    if (!text.trim() || sending) return;
-
-    const data = { content: text.trim(), hashtags: parseTags(tags) };
+  // возвращает true, если твит сохранён на сервере
+  async function addTweet(content, hashtags) {
+    const data = { content, hashtags };
     const tempId = makeTempId();
     const tempTweet = {
       ...data,
@@ -130,26 +119,19 @@ function TweetList() {
     };
 
     setTweets(prev => [tempTweet, ...prev]);
-    setText('');
-    setTags('');
     setSending(true);
 
     try {
       const res = await createTweetAPI(data);
       clearCache();
       setTweets(prev => prev.map(t => (t.id === tempId ? { ...res.data, liked: false } : t)));
+      return true;
     } catch (err) {
       setTweets(prev => prev.filter(t => t.id !== tempId));
-      setText(data.content);
       setNotice('Не удалось добавить твит: ' + errorText(err));
+      return false;
     } finally {
       setSending(false);
-    }
-  }
-
-  function handleKeyDown(e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      addTweet(e);
     }
   }
 
@@ -192,20 +174,10 @@ function TweetList() {
     return tweet.author === user.email || user.role === 'admin';
   }
 
-  function startEdit(tweet) {
-    setEditId(tweet.id);
-    setEditText(tweet.content);
-  }
-
-  async function saveEdit() {
-    if (!editText.trim()) return;
-
-    const id = editId;
+  async function saveEdit(id, newContent) {
     const old = tweets.find(t => t.id === id);
-    const newContent = editText.trim();
 
     setTweets(prev => prev.map(t => (t.id === id ? { ...t, content: newContent } : t)));
-    setEditId(null);
 
     try {
       const res = await updateTweetAPI(id, { content: newContent, hashtags: old.hashtags });
@@ -219,28 +191,7 @@ function TweetList() {
 
   return (
     <div className="feed">
-      <form onSubmit={addTweet} className="form compose">
-        <textarea
-          placeholder="Текст твита (Enter - отправить)"
-          value={text}
-          onChange={e => setText(e.target.value)}
-          onKeyDown={handleKeyDown}
-          rows={3}
-          maxLength={280}
-        />
-        <input
-          type="text"
-          placeholder="Теги через пробел, например #react #lab5"
-          value={tags}
-          onChange={e => setTags(e.target.value)}
-        />
-        <div className="form-bottom">
-          <span className="hint">{text.length}/280</span>
-          <button type="submit" className="btn-main" disabled={!text.trim() || sending}>
-            {sending ? 'Отправка...' : 'Отправить'}
-          </button>
-        </div>
-      </form>
+      <TweetForm sending={sending} onAdd={addTweet} />
 
       <div className="search">
         <input
@@ -256,11 +207,7 @@ function TweetList() {
 
       {notice && <p className="error message">{notice}</p>}
 
-      {loading && (
-        <div className="loader">
-          <span className="spinner"></span> Загрузка...
-        </div>
-      )}
+      {loading && <Loader />}
 
       {error && (
         <div className="message">
@@ -272,66 +219,18 @@ function TweetList() {
       {!loading && !error && tweets.length === 0 && <p className="hint message">Ничего не найдено</p>}
 
       {tweets.map(tweet => (
-        <div key={tweet.id} className="tweet">
-          <div className="avatar">{tweet.author?.[0]?.toUpperCase()}</div>
-
-          <div className="tweet-body">
-            <div className="tweet-top">
-              <b>{tweet.author}</b>
-              <span className="hint">
-                {tweet.pending ? 'отправляется...' : new Date(tweet.createdAt).toLocaleString()}
-              </span>
-            </div>
-
-            {editId === tweet.id ? (
-              <div>
-                <textarea
-                  value={editText}
-                  onChange={e => setEditText(e.target.value)}
-                  rows={3}
-                  maxLength={280}
-                />
-                <button className="btn-main" onClick={saveEdit}>Сохранить</button>
-                <button onClick={() => setEditId(null)}>Отмена</button>
-              </div>
-            ) : (
-              <p className="tweet-text">{tweet.content}</p>
-            )}
-
-            {tweet.hashtags?.length > 0 && (
-              <div className="tags">
-                {tweet.hashtags.map(tag => (
-                  <span key={tag} className="tag" onClick={() => setSearch(tag)}>
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            <div className="tweet-buttons">
-              <button
-                className={tweet.liked ? 'like-btn liked' : 'like-btn'}
-                onClick={() => likeTweet(tweet.id)}
-                disabled={tweet.pending}
-              >
-                {tweet.liked ? '♥' : '♡'} {tweet.likesCount}
-              </button>
-              {canChange(tweet) && (
-                <>
-                  <button onClick={() => startEdit(tweet)} disabled={tweet.pending}>Изменить</button>
-                  <button onClick={() => deleteTweet(tweet.id)} disabled={tweet.pending}>Удалить</button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+        <TweetItem
+          key={tweet.id}
+          tweet={tweet}
+          canChange={canChange(tweet)}
+          onLike={likeTweet}
+          onDelete={deleteTweet}
+          onSave={saveEdit}
+          onTagClick={setSearch}
+        />
       ))}
 
-      {loadingMore && (
-        <div className="loader">
-          <span className="spinner"></span> Загрузка...
-        </div>
-      )}
+      {loadingMore && <Loader />}
       {!loading && !error && !hasMore && tweets.length > 0 && <p className="hint message">Больше твитов нет</p>}
     </div>
   );

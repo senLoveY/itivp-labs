@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import TweetList from './TweetList';
-import LoginForm from './LoginForm';
-import AdminPanel from './AdminPanel';
+import Header from './components/Header';
+import LoginForm from './auth/LoginForm';
+import TweetList from './feed/TweetList';
+import AdminPanel from './admin/AdminPanel';
 import { getCurrentUser } from './api';
 import { clearCache } from './cache';
 import './App.css';
@@ -26,20 +27,13 @@ function App() {
 
   return (
     <div>
-      <header className={page === 'admin' ? 'header header-wide' : 'header'}>
-        <div className="header-inner">
-          <b className="logo">Микроблог</b>
-          <div>
-            <span className="hint">{localStorage.getItem('email')}</span>
-            {isAdmin && (
-              <button onClick={() => setPage(page === 'feed' ? 'admin' : 'feed')}>
-                {page === 'feed' ? 'Админка' : 'Лента'}
-              </button>
-            )}
-            <button onClick={logout}>Выйти</button>
-          </div>
-        </div>
-      </header>
+      <Header
+        email={localStorage.getItem('email')}
+        isAdmin={isAdmin}
+        page={page}
+        onTogglePage={() => setPage(page === 'feed' ? 'admin' : 'feed')}
+        onLogout={logout}
+      />
       {isAdmin && page === 'admin' ? <AdminPanel /> : <TweetList />}
     </div>
   );
