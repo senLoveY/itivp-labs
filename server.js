@@ -94,7 +94,7 @@ app.get('/profile', verifyToken, async (req, res) => {
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Returns an array of users (id, email, role, createdAt)
+ *         description: Returns an array of users (id, email, role, isBanned, banReason, createdAt)
  *       401:
  *         description: Token not provided
  *       403:
@@ -104,7 +104,10 @@ app.get('/profile', verifyToken, async (req, res) => {
  */
 app.get('/admin/users', verifyToken, isAdmin, async (req, res) => {
     try {
-        const users = await User.findAll({ attributes: ['id', 'email', 'role', 'createdAt'] });
+        const users = await User.findAll({
+            attributes: ['id', 'email', 'role', 'isBanned', 'banReason', 'createdAt'],
+            order: [['id', 'ASC']]
+        });
         res.status(200).json({
             message: "Secret admin panel",
             users
@@ -118,13 +121,31 @@ app.get('/admin/users', verifyToken, isAdmin, async (req, res) => {
  * @swagger
  * /admin/logs:
  *   get:
- *     summary: View login logs (Admin only)
+ *     summary: View login logs with pagination (Admin only)
  *     tags: [Users & Admin]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Records per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by user email or IP (case-insensitive)
  *     responses:
  *       200:
- *         description: Returns up to 50 latest login attempts
+ *         description: Returns { logs, total, page, pages }, newest first
  *       401:
  *         description: Token not provided
  *       403:
@@ -134,13 +155,36 @@ app.get('/admin/users', verifyToken, isAdmin, async (req, res) => {
  */
 app.get('/admin/logs', verifyToken, isAdmin, async (req, res) => {
     try {
-        const logs = await LoginLog.findAll({
-            order: [['createdAt', 'DESC']],
-            limit: 50
+        const limit = parseInt(req.query.limit) || 10;
+        const page = parseInt(req.query.page) || 1;
+        const search = req.query.search || '';
+
+        let whereClause = {};
+        if (search) {
+            const users = await User.findAll({
+                where: { email: { [Op.iLike]: `%${search}%` } },
+                attributes: ['id']
+            });
+            whereClause = {
+                [Op.or]: [
+                    { userId: users.map(u => u.id) },
+                    { ip: { [Op.iLike]: `%${search}%` } }
+                ]
+            };
+        }
+
+        const { count, rows } = await LoginLog.findAndCountAll({
+            where: whereClause,
+            order: [['createdAt', 'DESC'], ['id', 'DESC']],
+            limit: limit,
+            offset: (page - 1) * limit
         });
+
         res.status(200).json({
-            message: "Login logs retrieved successfully",
-            logs
+            logs: rows,
+            total: count,
+            page: page,
+            pages: Math.ceil(count / limit)
         });
     } catch (error) {
         console.error("LOGS ERROR:", error);
@@ -242,6 +286,72 @@ app.post('/admin/users/:id/unban', verifyToken, isAdmin, async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Server error during unblocking" });
+    }
+});
+
+/**
+ * @swagger
+ * /admin/users/{id}/role:
+ *   put:
+ *     summary: Change user role (Admin only)
+ *     description: An admin cannot change their own role.
+ *     tags: [Users & Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: User ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - role
+ *             properties:
+ *               role:
+ *                 type: string
+ *                 enum: [user, admin]
+ *                 example: admin
+ *     responses:
+ *       200:
+ *         description: Role changed
+ *       400:
+ *         description: Invalid role or attempt to change own role
+ *       401:
+ *         description: Token not provided
+ *       403:
+ *         description: Admin rights required or invalid token
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error while changing role
+ */
+app.put('/admin/users/:id/role', verifyToken, isAdmin, async (req, res) => {
+    try {
+        const { role } = req.body;
+
+        if (role !== 'user' && role !== 'admin') {
+            return res.status(400).json({ error: "Role must be 'user' or 'admin'" });
+        }
+
+        if (Number(req.params.id) === req.user.id) {
+            return res.status(400).json({ error: "You can't change your own role" });
+        }
+
+        const targetUser = await User.findByPk(req.params.id);
+        if (!targetUser) return res.status(404).json({ error: "User not found" });
+
+        await targetUser.update({ role });
+        res.status(200).json({ message: `User ${targetUser.email} is now ${role}.` });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Server error while changing role" });
     }
 });
 
