@@ -27,3 +27,10 @@ export const createTweetAPI = (data) => api.post('/tweets', data);
 export const updateTweetAPI = (id, data) => api.put(`/tweets/${id}`, data);
 export const deleteTweetAPI = (id) => api.delete(`/tweets/${id}`);
 export const likeTweetAPI = (id) => api.post(`/tweets/${id}/like`);
+
+export const fetchUsersAPI = () => api.get('/admin/users');
+export const banUserAPI = (id, banReason) => api.post(`/admin/users/${id}/ban`, { banReason });
+export const unbanUserAPI = (id) => api.post(`/admin/users/${id}/unban`);
+export const changeRoleAPI = (id, role) => api.put(`/admin/users/${id}/role`, { role });
+export const fetchLogsAPI = (page, search, signal) =>
+  api.get('/admin/logs', { params: { page, limit: 10, search }, signal });
