@@ -35,10 +35,6 @@ const router = express.Router();
  *                 type: string
  *                 description: Min 8 chars, uppercase, lowercase, number, and special character (@$!%*?&)
  *                 example: User123!
- *               role:
- *                 type: string
- *                 description: Optional. Defaults to "user"
- *                 example: user
  *     responses:
  *       201:
  *         description: User successfully registered
@@ -49,7 +45,7 @@ const router = express.Router();
  */
 router.post('/register', async (req, res) => {
     try {
-        const { email, password, role } = req.body;
+        const { email, password } = req.body;
 
         const existingUser = await User.findOne({ where: { email } });
         if (existingUser) {
@@ -67,7 +63,7 @@ router.post('/register', async (req, res) => {
         const newUser = await User.create({
             email,
             passwordHash,
-            role: role || 'user'
+            role: 'user'
         });
 
         res.status(201).json({ message: "User successfully registered", userId: newUser.id });
@@ -105,7 +101,7 @@ router.post('/register', async (req, res) => {
  *       401:
  *         description: Invalid password
  *       403:
- *         description: Account temporarily locked due to multiple failed login attempts
+ *         description: Account temporarily locked due to multiple failed login attempts, or account is banned
  *       404:
  *         description: User not found
  *       500:
@@ -143,6 +139,11 @@ router.post('/login', async (req, res) => {
             await LoginLog.create({ userId: user.id, ip, userAgent, success: false });
 
             return res.status(401).json({ error: "Invalid password" });
+        }
+
+        if (user.isBanned) {
+            await LoginLog.create({ userId: user.id, ip, userAgent, success: false });
+            return res.status(403).json({ error: `Your account is banned. Reason: ${user.banReason}` });
         }
 
         await user.update({ failedLoginAttempts: 0, lockUntil: null });
