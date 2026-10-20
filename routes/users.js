@@ -54,7 +54,6 @@ router.get('/stats/me', verifyToken, async (req, res) => {
             order: [['likesCount', 'DESC'], ['createdAt', 'DESC']]
         });
 
-        // разрез по тегам: сколько постов с тегом и сколько у них лайков
         const tagMap = {};
         tweets.forEach(t => {
             (t.hashtags || []).forEach(tag => {

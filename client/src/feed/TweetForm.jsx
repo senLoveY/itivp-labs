@@ -7,7 +7,6 @@ function parseTags(str) {
     .map(t => (t.startsWith('#') ? t : '#' + t));
 }
 
-// onAdd(content, hashtags) возвращает true при успехе и false при ошибке
 function TweetForm({ sending, onAdd }) {
   const [text, setText] = useState('');
   const [tags, setTags] = useState('');

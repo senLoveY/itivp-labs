@@ -11,7 +11,6 @@ function makeTempId() {
   return Date.now();
 }
 
-// author – показывать только твиты этого автора ("Мои посты"), showSort – выбор сортировки
 function TweetList({ author = '', title = '', showSort = false }) {
   const user = getCurrentUser();
   const [tweets, setTweets] = useState([]);
@@ -95,8 +94,6 @@ function TweetList({ author = '', title = '', showSort = false }) {
       clearTimeout(timer);
       controller.abort();
     };
-    // загрузка зависит только от строки поиска и сортировки
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, sort]);
 
   useEffect(() => {
@@ -109,7 +106,6 @@ function TweetList({ author = '', title = '', showSort = false }) {
     document.title = `Твиты (${tweets.length})`;
   }, [tweets.length]);
 
-  // возвращает true, если твит сохранён на сервере
   async function addTweet(content, hashtags) {
     const data = { content, hashtags };
     const tempId = makeTempId();
