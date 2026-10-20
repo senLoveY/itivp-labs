@@ -97,7 +97,7 @@ function UsersTab({ users, loading, error, onReload, onNotice }) {
                   </td>
                   <td>{new Date(user.createdAt).toLocaleDateString()}</td>
                   <td>
-                    {user.id === me.id ? (
+                    {user.id === me?.id ? (
                       <div className="hint right">это вы</div>
                     ) : (
                       <div className="admin-actions">

@@ -171,7 +171,7 @@ function TweetList() {
   }
 
   function canChange(tweet) {
-    return tweet.author === user.email || user.role === 'admin';
+    return tweet.author === user?.email || user?.role === 'admin';
   }
 
   async function saveEdit(id, newContent) {

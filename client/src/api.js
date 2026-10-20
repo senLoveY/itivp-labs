@@ -34,3 +34,5 @@ export const unbanUserAPI = (id) => api.post(`/admin/users/${id}/unban`);
 export const changeRoleAPI = (id, role) => api.put(`/admin/users/${id}/role`, { role });
 export const fetchLogsAPI = (page, search, signal) =>
   api.get('/admin/logs', { params: { page, limit: 10, search }, signal });
+
+export const fetchMyStatsAPI = () => api.get('/stats/me');

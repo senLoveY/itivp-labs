@@ -83,6 +83,16 @@ a {
 
 .logo {
   font-size: 18px;
+  margin-right: 12px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+.nav button {
+  margin-right: 2px;
 }
 
 .header .hint {
@@ -340,4 +350,57 @@ a {
 
 .admin-table .error {
   word-break: break-word;
+}
+
+/* статистика */
+
+.feed.stats {
+  max-width: 960px;
+  padding-bottom: 24px;
+}
+
+.stat-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.stat-card {
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  padding: 12px 14px;
+  min-width: 0;
+}
+
+.stat-value {
+  font-size: 26px;
+  font-weight: bold;
+  margin: 2px 0;
+}
+
+.stat-block {
+  padding: 16px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.stat-block h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.chart {
+  position: relative;
+  margin-top: 12px;
+}
+
+.stat-table {
+  margin-top: 16px;
+}
+
+@media (max-width: 700px) {
+  .stat-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }

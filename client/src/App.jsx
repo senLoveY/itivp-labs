@@ -3,6 +3,7 @@ import Header from './components/Header';
 import LoginForm from './auth/LoginForm';
 import TweetList from './feed/TweetList';
 import AdminPanel from './admin/AdminPanel';
+import StatsPage from './stats/StatsPage';
 import { getCurrentUser } from './api';
 import { clearCache } from './cache';
 import './App.css';
@@ -31,10 +32,12 @@ function App() {
         email={localStorage.getItem('email')}
         isAdmin={isAdmin}
         page={page}
-        onTogglePage={() => setPage(page === 'feed' ? 'admin' : 'feed')}
+        onChangePage={setPage}
         onLogout={logout}
       />
-      {isAdmin && page === 'admin' ? <AdminPanel /> : <TweetList />}
+      {page === 'feed' && <TweetList />}
+      {page === 'stats' && <StatsPage />}
+      {page === 'admin' && isAdmin && <AdminPanel />}
     </div>
   );
 }
