@@ -9,7 +9,7 @@ const router = express.Router();
  * @swagger
  * /tweets:
  *   get:
- *     summary: Get a list of tweets (with pagination and search)
+ *     summary: Get a list of tweets (with pagination, search, author filter and sorting)
  *     description: Token is optional. If a valid token is sent, each tweet has liked = true when the current user liked it.
  *     tags: [Tweets]
  *     security:
@@ -33,9 +33,21 @@ const router = express.Router();
  *         schema:
  *           type: string
  *         description: Search in content, author and hashtags (case-insensitive)
+ *       - in: query
+ *         name: author
+ *         schema:
+ *           type: string
+ *         description: Only tweets of this author (exact email)
+ *       - in: query
+ *         name: sort
+ *         schema:
+ *           type: string
+ *           enum: [new, old, likes]
+ *           default: new
+ *         description: new – newest first, old – oldest first, likes – most liked first
  *     responses:
  *       200:
- *         description: An array of tweets ordered by createdAt DESC, id DESC. Each tweet has the liked field (true or false)
+ *         description: An array of tweets in the selected order. Each tweet has the liked field (true or false)
  *       500:
  *         description: Database error while fetching tweets
  *
@@ -81,6 +93,8 @@ router.get('/', async (req, res) => {
         const limit = parseInt(req.query.limit) || 10;
         const offset = parseInt(req.query.offset) || 0;
         const search = req.query.search || '';
+        const author = req.query.author || '';
+        const sort = req.query.sort || 'new';
 
         const whereClause = search ? {
             [Op.or]: [
@@ -90,9 +104,19 @@ router.get('/', async (req, res) => {
             ]
         } : {};
 
+        if (author) {
+            whereClause.author = author;
+        }
+
+        const orders = {
+            new: [['createdAt', 'DESC'], ['id', 'DESC']],
+            old: [['createdAt', 'ASC'], ['id', 'ASC']],
+            likes: [['likesCount', 'DESC'], ['createdAt', 'DESC'], ['id', 'DESC']]
+        };
+
         const tweets = await Tweet.findAll({
             where: whereClause,
-            order: [['createdAt', 'DESC'], ['id', 'DESC']],
+            order: orders[sort] || orders.new,
             limit: limit,
             offset: offset
         });
