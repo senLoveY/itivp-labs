@@ -46,4 +46,17 @@ const isNotBanned = async (req, res, next) => {
     }
 };
 
-module.exports = { verifyToken, isAdmin, isNotBanned };
+// пользователь из токена, если он есть (для открытых маршрутов, например GET /tweets)
+const getUserFromToken = (req) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) return null;
+
+    try {
+        return jwt.verify(token, process.env.JWT_SECRET);
+    } catch (error) {
+        return null;
+    }
+};
+
+module.exports = { verifyToken, isAdmin, isNotBanned, getUserFromToken };

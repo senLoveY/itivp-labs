@@ -1,54 +1,129 @@
-.container {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-h1 {
-  margin-top: 0;
-}
-
-h2 {
-  font-size: 18px;
-}
+/* общие элементы */
 
 input,
-textarea,
-select {
+textarea {
   font: inherit;
-  padding: 6px;
-  border: 1px solid #aaa;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
   box-sizing: border-box;
+  outline: none;
+}
+
+input:focus,
+textarea:focus {
+  border-color: #111;
 }
 
 textarea {
-  width: 100%;
   resize: vertical;
 }
 
 button {
   font: inherit;
-  padding: 4px 10px;
-  margin-right: 5px;
+  font-size: 14px;
+  padding: 6px 12px;
+  margin-right: 4px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: #555;
   cursor: pointer;
 }
 
-.btn-main {
-  background: #2b6cb0;
-  color: white;
-  border: 1px solid #2b6cb0;
+button:hover {
+  background: #eee;
 }
 
-.btn-main:disabled {
+button:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+.btn-main {
+  background: #111;
+  color: #fff;
+}
+
+.btn-main:hover {
+  background: #333;
+}
+
+.hint {
+  color: #888;
+  font-size: 13px;
+}
+
+.error {
+  color: #c53030;
+}
+
+a {
+  color: #111;
+}
+
+/* шапка */
+
+.header {
+  background: #fff;
+  border-bottom: 1px solid #e5e5e5;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.header-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 10px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-size: 18px;
+  margin-right: 12px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+.nav {
+  white-space: nowrap;
+}
+
+.nav button {
+  margin-right: 2px;
+}
+
+.header .hint {
+  margin-right: 8px;
+}
+
+/* лента */
+
+.feed {
+  max-width: 600px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: #fff;
+  border-left: 1px solid #e5e5e5;
+  border-right: 1px solid #e5e5e5;
 }
 
 .form {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-bottom: 20px;
+}
+
+.compose {
+  padding: 16px;
+  border-bottom: 1px solid #e5e5e5;
 }
 
 .form-bottom {
@@ -57,36 +132,298 @@ button {
   align-items: center;
 }
 
-.toolbar {
+.search {
+  padding: 12px 16px 0;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.message {
+  padding: 0 16px;
+}
+
+.page-title {
+  margin: 0;
+  padding: 16px 16px 0;
+  font-size: 20px;
+}
+
+.search-row {
   display: flex;
   gap: 8px;
 }
 
-.toolbar input {
-  flex: 1;
+.search-row select {
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
 }
 
-.hint {
-  color: #777;
-  font-size: 14px;
+.loader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  color: #888;
+  font-size: 13px;
 }
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #ddd;
+  border-top-color: #111;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* твит */
 
 .tweet {
-  border: 1px solid #ccc;
-  padding: 10px;
-  margin-bottom: 10px;
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.avatar {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #e5e5e5;
+  color: #555;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tweet-body {
+  flex: 1;
+  min-width: 0;
 }
 
 .tweet-top {
   display: flex;
   justify-content: space-between;
+  gap: 8px;
+}
+
+.tweet-body textarea {
+  margin: 6px 0;
 }
 
 .tweet-text {
+  margin: 6px 0;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.tag {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #f0f0f0;
+  color: #555;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tag:hover {
+  background: #e0e0e0;
+}
+
 .tweet-buttons {
-  margin-top: 8px;
+  margin-left: -12px;
+}
+
+.like-btn.liked {
+  color: #e0245e;
+}
+
+/* вход */
+
+.login {
+  max-width: 340px;
+  margin: 80px auto;
+  padding: 24px;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.login h1 {
+  margin-top: 0;
+}
+
+.login-form {
+  margin-bottom: 16px;
+}
+
+/* админка */
+
+.feed.admin {
+  max-width: 960px;
+}
+
+.admin-scroll {
+  overflow-x: auto;
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 16px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #e5e5e5;
+  text-align: left;
+  vertical-align: top;
+}
+
+.admin-table th {
+  color: #888;
+  font-weight: normal;
+  font-size: 13px;
+}
+
+.admin-table .right,
+.admin-table th.right {
+  text-align: right;
+}
+
+/* две колонки кнопок: бан и роль, чтобы кнопки стояли ровно друг под другом */
+.admin-actions {
+  display: grid;
+  grid-template-columns: 100px 140px;
+  gap: 6px;
+  justify-content: end;
+}
+
+.admin-actions button {
+  width: 100%;
+  padding: 3px 8px;
+  margin: 0;
+  border: 1px solid #ddd;
+  white-space: nowrap;
+}
+
+.btn-danger {
+  color: #c53030;
+}
+
+.btn-danger:hover {
+  background: #fdecec;
+}
+
+.pill {
+  display: inline-block;
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: #f0f0f0;
+  color: #555;
+  font-size: 13px;
+}
+
+.pill-dark {
+  background: #111;
+  color: #fff;
+}
+
+.pill-red {
+  background: #fdecec;
+  color: #c53030;
+}
+
+.pager {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+}
+
+.pager button {
+  border: 1px solid #ddd;
+}
+
+.admin-table .error {
+  word-break: break-word;
+}
+
+/* статистика */
+
+.feed.stats {
+  max-width: 960px;
+  padding-bottom: 24px;
+}
+
+.stat-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.stat-card {
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  padding: 12px 14px;
+  min-width: 0;
+}
+
+.stat-value {
+  font-size: 26px;
+  font-weight: bold;
+  margin: 2px 0;
+}
+
+.stat-block {
+  padding: 16px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.stat-block h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.chart {
+  position: relative;
+  margin-top: 12px;
+}
+
+.stat-table {
+  margin-top: 16px;
+}
+
+@media (max-width: 700px) {
+  .stat-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
