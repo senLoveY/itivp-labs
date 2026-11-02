@@ -12,7 +12,7 @@ function shorten(text, length = 30) {
   return text.length > length ? text.slice(0, length) + '…' : text;
 }
 
-function barOptions(fullLabels) {
+function barOptions(fullLabels, valueLabel = 'Лайков') {
   return {
     indexAxis: 'y',
     maintainAspectRatio: false,
@@ -22,7 +22,7 @@ function barOptions(fullLabels) {
         displayColors: false,
         callbacks: {
           title: items => fullLabels[items[0].dataIndex],
-          label: item => `Лайков: ${item.raw}`
+          label: item => `${valueLabel}: ${item.raw}`
         }
       }
     },
@@ -98,7 +98,7 @@ function StatsPage() {
     );
   }
 
-  const { totals, tweets, tags } = stats;
+  const { totals, tweets, tags, discussed } = stats;
 
   if (totals.posts === 0) {
     return (
@@ -141,6 +141,21 @@ function StatsPage() {
             options={barOptions(topTweets.map(t => t.content))}
           />
         </div>
+      </div>
+
+      <div className="stat-block">
+        <h3>Самые обсуждаемые посты</h3>
+        <p className="hint">Топ-5 ваших постов по количеству комментариев и ответов</p>
+        {discussed === null && <p className="error">Не удалось загрузить комментарии.</p>}
+        {discussed?.length === 0 && <p className="hint">К вашим постам пока нет комментариев.</p>}
+        {discussed?.length > 0 && (
+          <div className="chart" style={{ height: discussed.length * 32 + 40 }}>
+            <Bar
+              data={barData(discussed.map(t => shorten(t.content)), discussed.map(t => t.total))}
+              options={barOptions(discussed.map(t => t.content), 'Комментариев и ответов')}
+            />
+          </div>
+        )}
       </div>
 
       <div className="stat-block">

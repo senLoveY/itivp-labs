@@ -31,6 +31,16 @@ commentSchema.statics.findByTweet = function (tweetId) {
     return this.find({ tweetId }).sort({ createdAt: -1 });
 };
 
+commentSchema.statics.topByTweets = function (tweetIds, limit = 5) {
+    return this.aggregate([
+        { $match: { tweetId: { $in: tweetIds } } },
+        { $group: { _id: '$tweetId', comments: { $sum: 1 }, replies: { $sum: { $size: '$replies' } } } },
+        { $addFields: { total: { $add: ['$comments', '$replies'] } } },
+        { $sort: { total: -1, comments: -1 } },
+        { $limit: limit }
+    ]);
+};
+
 const Comment = mongoose.model('Comment', commentSchema);
 
 module.exports = Comment;
