@@ -3,6 +3,7 @@ const { Op } = require('sequelize');
 const { Tweet, Like, sequelize } = require('../models');
 const Comment = require('../mongo-models/Comment');
 const { verifyToken, isNotBanned, getUserFromToken } = require('../middleware/auth');
+const { getIO } = require('../socket');
 
 const router = express.Router();
 
@@ -259,6 +260,7 @@ router.post('/', verifyToken, isNotBanned, async (req, res) => {
             hashtags: hashtags || []
         });
 
+        getIO().emit('tweet:new', newTweet);
         res.status(201).json(newTweet);
     } catch (error) {
         console.error(error);
@@ -288,6 +290,7 @@ router.put('/:id', verifyToken, isNotBanned, async (req, res) => {
             hashtags: hashtags || []
         });
 
+        getIO().emit('tweet:update', tweet);
         res.status(200).json(tweet);
     } catch (error) {
         console.error(error);
@@ -310,6 +313,7 @@ router.delete('/:id', verifyToken, isNotBanned, async (req, res) => {
         await tweet.destroy();
         await Comment.deleteMany({ tweetId: tweet.id });
 
+        getIO().emit('tweet:delete', { id: tweet.id });
         res.status(200).json({ message: "Tweet successfully deleted", deleted: tweet });
     } catch (error) {
         console.error(error);
@@ -367,6 +371,8 @@ router.post('/:id/like', verifyToken, isNotBanned, async (req, res) => {
             return res.status(404).json({ error: "Tweet not found" });
         }
 
+        // liked у каждого свой, поэтому всем рассылается только счётчик
+        getIO().emit('tweet:like', { id: result.id, likesCount: result.likesCount });
         res.status(200).json(result);
     } catch (error) {
         console.error(error);

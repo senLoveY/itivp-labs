@@ -3,8 +3,23 @@ const mongoose = require('mongoose');
 const Comment = require('../mongo-models/Comment');
 const { Tweet } = require('../models');
 const { verifyToken, isNotBanned } = require('../middleware/auth');
+const { getIO } = require('../socket');
 
 const router = express.Router();
+
+// после изменения комментариев рассылаем готовое число, а не +1:
+// автор комментария уже обновил свой счётчик сам
+const emitCommentsCount = async (tweetId) => {
+    try {
+        const [row] = await Comment.aggregate([
+            { $match: { tweetId } },
+            { $group: { _id: null, count: { $sum: { $add: [1, { $size: '$replies' }] } } } }
+        ]);
+        getIO().emit('comment:count', { tweetId, count: row ? row.count : 0 });
+    } catch (error) {
+        console.error(error);
+    }
+};
 
 const checkObjectId = (req, res, next, value) => {
     if (!mongoose.isValidObjectId(value)) {
@@ -239,6 +254,7 @@ router.post('/', verifyToken, isNotBanned, async (req, res) => {
             text
         });
 
+        await emitCommentsCount(tweetId);
         res.status(201).json(comment);
     } catch (error) {
         handleError(res, error, "Database error while creating comment");
@@ -346,6 +362,7 @@ router.delete('/:id', verifyToken, isNotBanned, async (req, res) => {
 
         const deleted = await Comment.findByIdAndDelete(req.params.id);
 
+        await emitCommentsCount(deleted.tweetId);
         res.status(200).json({ message: "Comment successfully deleted", deleted });
     } catch (error) {
         handleError(res, error, "Database error while deleting comment");
@@ -453,6 +470,7 @@ router.post('/:id/replies', verifyToken, isNotBanned, async (req, res) => {
             return res.status(404).json({ error: "Comment not found" });
         }
 
+        await emitCommentsCount(comment.tweetId);
         res.status(201).json(comment);
     } catch (error) {
         handleError(res, error, "Database error while adding reply");
@@ -631,6 +649,7 @@ router.delete('/:id/replies/:replyId', verifyToken, isNotBanned, async (req, res
             { returnDocument: 'after' }
         );
 
+        await emitCommentsCount(updated.tweetId);
         res.status(200).json(updated);
     } catch (error) {
         handleError(res, error, "Database error while deleting reply");

@@ -4,6 +4,7 @@ import { getCache, setCache, clearCache } from '../cache';
 import Loader from '../components/Loader';
 import TweetForm from './TweetForm';
 import TweetItem from './TweetItem';
+import { socket } from '../socket';
 
 const PAGE_SIZE = 10;
 
@@ -31,6 +32,9 @@ function TweetList({
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState('');
   const [sort, setSort] = useState('new');
+
+  // новые посты других пользователей, ещё не показанные в ленте
+  const [fresh, setFresh] = useState([]);
 
   const [commentCounts, setCommentCounts] = useState({});
   const requestedCounts = useRef(new Set());
@@ -130,6 +134,55 @@ function TweetList({
       .then(res => setCommentCounts(prev => ({ ...prev, ...res.data })))
       .catch(() => ids.forEach(id => requestedCounts.current.delete(id)));
   }, [tweets]);
+
+  // изменения от других пользователей приходят через сокет
+  useEffect(() => {
+    function onNew(tweet) {
+      if (tweet.author === user?.email || author || search) return;
+      clearCache();
+      setFresh(prev => [{ ...tweet, liked: false }, ...prev]);
+    }
+
+    function onUpdate(tweet) {
+      clearCache();
+      setTweets(prev => prev.map(t => (t.id === tweet.id ? { ...tweet, liked: t.liked } : t)));
+    }
+
+    function onDelete({ id }) {
+      clearCache();
+      setTweets(prev => prev.filter(t => t.id !== id));
+      setFresh(prev => prev.filter(t => t.id !== id));
+    }
+
+    function onLike({ id, likesCount }) {
+      clearCache();
+      setTweets(prev => prev.map(t => (t.id === id ? { ...t, likesCount } : t)));
+    }
+
+    function onCommentsCount({ tweetId, count }) {
+      setCommentCounts(prev => ({ ...prev, [tweetId]: count }));
+    }
+
+    socket.on('tweet:new', onNew);
+    socket.on('tweet:update', onUpdate);
+    socket.on('tweet:delete', onDelete);
+    socket.on('tweet:like', onLike);
+    socket.on('comment:count', onCommentsCount);
+
+    return () => {
+      socket.off('tweet:new', onNew);
+      socket.off('tweet:update', onUpdate);
+      socket.off('tweet:delete', onDelete);
+      socket.off('tweet:like', onLike);
+      socket.off('comment:count', onCommentsCount);
+    };
+  }, [author, search, user?.email]);
+
+  function showFresh() {
+    setTweets(prev => [...fresh.filter(f => !prev.some(p => p.id === f.id)), ...prev]);
+    setFresh([]);
+    window.scrollTo(0, 0);
+  }
 
   function changeCommentsCount(tweetId, update) {
     setCommentCounts(prev => ({ ...prev, [tweetId]: Math.max(0, update(prev[tweetId] || 0)) }));
@@ -242,6 +295,12 @@ function TweetList({
       )}
 
       {showForm && <TweetForm sending={sending} onAdd={addTweet} />}
+
+      {fresh.length > 0 && (
+        <button className="fresh-btn" onClick={showFresh}>
+          Новые посты ({fresh.length})
+        </button>
+      )}
 
       {search && (
         <p className="hint search-info">

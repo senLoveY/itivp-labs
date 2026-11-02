@@ -702,3 +702,18 @@ b.author-link:hover,
   font-size: 14px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
+
+/* новые посты из сокета */
+.fresh-btn {
+  display: block;
+  width: calc(100% - 32px);
+  margin: 12px 16px;
+  padding: 10px;
+  background: #111;
+  color: #fff;
+  border-radius: 999px;
+}
+
+.fresh-btn:hover {
+  background: #333;
+}
