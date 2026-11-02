@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { updateCommentAPI, deleteCommentAPI, addReplyAPI, likeReplyAPI, deleteReplyAPI, getCurrentUser } from '../api';
+import { updateCommentAPI, deleteCommentAPI, likeCommentAPI, addReplyAPI, likeReplyAPI, deleteReplyAPI, getCurrentUser } from '../api';
 
 function CommentItem({ comment, onChange, onDelete, onCountChange }) {
   const user = getCurrentUser();
@@ -11,6 +11,7 @@ function CommentItem({ comment, onChange, onDelete, onCountChange }) {
   const [error, setError] = useState('');
 
   const canChange = comment.author === user?.email || user?.role === 'admin';
+  const liked = comment.likedBy?.includes(user?.email);
 
   // общий обработчик запроса: блокирует кнопки и показывает ошибку
   async function run(request, onSuccess, failText) {
@@ -52,6 +53,10 @@ function CommentItem({ comment, onChange, onDelete, onCountChange }) {
       },
       'Не удалось удалить комментарий'
     );
+  }
+
+  function like() {
+    run(() => likeCommentAPI(comment._id), onChange, 'Не удалось поставить лайк');
   }
 
   function sendReply(e) {
@@ -112,6 +117,9 @@ function CommentItem({ comment, onChange, onDelete, onCountChange }) {
 
       {!editing && (
         <div className="comment-buttons">
+          <button className={liked ? 'like-btn liked' : 'like-btn'} onClick={like} disabled={busy}>
+            {liked ? '♥' : '♡'} {comment.likes}
+          </button>
           <button onClick={() => setReplying(!replying)} disabled={busy}>Ответить</button>
           {canChange && (
             <>

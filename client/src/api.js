@@ -61,6 +61,7 @@ export const fetchCommentsAPI = (tweetId) => api.get('/comments', { params: { tw
 export const createCommentAPI = (tweetId, text) => api.post('/comments', { tweetId, text });
 export const updateCommentAPI = (id, text) => api.put(`/comments/${id}`, { text });
 export const deleteCommentAPI = (id) => api.delete(`/comments/${id}`);
+export const likeCommentAPI = (id) => api.patch(`/comments/${id}/like`);
 export const addReplyAPI = (id, text) => api.post(`/comments/${id}/replies`, { text });
 export const likeReplyAPI = (id, replyId) => api.patch(`/comments/${id}/replies/${replyId}/like`);
 export const deleteReplyAPI = (id, replyId) => api.delete(`/comments/${id}/replies/${replyId}`);

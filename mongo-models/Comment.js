@@ -17,12 +17,10 @@ const commentSchema = new mongoose.Schema({
     author: { type: String, required: true },
     text: { type: String, required: true, trim: true, maxlength: 280 },
     likes: { type: Number, default: 0, min: 0 },
-    tags: [{ type: String, trim: true, lowercase: true }],
+    likedBy: [String],
     replies: [replySchema],
     editHistory: [editSchema]
 }, { timestamps: true });
-
-commentSchema.index({ tags: 1 });
 
 commentSchema.methods.canEdit = function (user) {
     return this.author === user.email || user.role === 'admin';

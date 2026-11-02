@@ -38,11 +38,6 @@ const handleError = (res, error, message) => {
  *           type: integer
  *         description: Filter by tweet id from PostgreSQL
  *       - in: query
- *         name: tag
- *         schema:
- *           type: string
- *         description: Filter comments whose tags array contains this value
- *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
@@ -65,7 +60,6 @@ router.get('/', async (req, res) => {
 
         const filter = {};
         if (req.query.tweetId) filter.tweetId = Number(req.query.tweetId);
-        if (req.query.tag) filter.tags = req.query.tag.toLowerCase();
 
         const [comments, total] = await Promise.all([
             Comment.find(filter).sort({ createdAt: -1 }).skip(offset).limit(limit),
@@ -216,11 +210,6 @@ router.get('/:id', async (req, res) => {
  *               text:
  *                 type: string
  *                 example: Great post!
- *               tags:
- *                 type: array
- *                 items:
- *                   type: string
- *                 example: ["opinion"]
  *     responses:
  *       201:
  *         description: Comment created
@@ -233,7 +222,7 @@ router.get('/:id', async (req, res) => {
  */
 router.post('/', verifyToken, isNotBanned, async (req, res) => {
     try {
-        const { tweetId, text, tags } = req.body;
+        const { tweetId, text } = req.body;
 
         if (!Number.isInteger(tweetId)) {
             return res.status(400).json({ error: "The 'tweetId' field must be an integer." });
@@ -247,8 +236,7 @@ router.post('/', verifyToken, isNotBanned, async (req, res) => {
         const comment = await Comment.create({
             tweetId,
             author: req.user.email,
-            text,
-            tags: tags || []
+            text
         });
 
         res.status(201).json(comment);
@@ -283,10 +271,6 @@ router.post('/', verifyToken, isNotBanned, async (req, res) => {
  *               text:
  *                 type: string
  *                 example: Great post, thanks!
- *               tags:
- *                 type: array
- *                 items:
- *                   type: string
  *     responses:
  *       200:
  *         description: Updated comment
@@ -299,7 +283,7 @@ router.post('/', verifyToken, isNotBanned, async (req, res) => {
  */
 router.put('/:id', verifyToken, isNotBanned, async (req, res) => {
     try {
-        const { text, tags } = req.body;
+        const { text } = req.body;
 
         if (!text) {
             return res.status(400).json({ error: "The 'text' field is mandatory for update." });
@@ -314,7 +298,7 @@ router.put('/:id', verifyToken, isNotBanned, async (req, res) => {
             return res.status(403).json({ error: "Access denied. You can only update your own comments." });
         }
 
-        const update = { $set: { text, tags: tags || comment.tags } };
+        const update = { $set: { text } };
         if (text !== comment.text) {
             update.$push = { editHistory: { text: comment.text } };
         }
@@ -365,6 +349,55 @@ router.delete('/:id', verifyToken, isNotBanned, async (req, res) => {
         res.status(200).json({ message: "Comment successfully deleted", deleted });
     } catch (error) {
         handleError(res, error, "Database error while deleting comment");
+    }
+});
+
+/**
+ * @swagger
+ * /comments/{id}/like:
+ *   patch:
+ *     summary: Like or unlike a comment (one like per user)
+ *     tags: [Comments (MongoDB)]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Comment with updated likes
+ *       404:
+ *         description: Comment not found
+ */
+router.patch('/:id/like', verifyToken, isNotBanned, async (req, res) => {
+    try {
+        const id = req.params.id;
+        const email = req.user.email;
+
+        let comment = await Comment.findOneAndUpdate(
+            { _id: id, likedBy: { $ne: email } },
+            { $inc: { likes: 1 }, $push: { likedBy: email } },
+            { returnDocument: 'after' }
+        );
+
+        if (!comment) {
+            comment = await Comment.findOneAndUpdate(
+                { _id: id, likedBy: email },
+                { $inc: { likes: -1 }, $pull: { likedBy: email } },
+                { returnDocument: 'after' }
+            );
+        }
+
+        if (!comment) {
+            return res.status(404).json({ error: "Comment not found" });
+        }
+
+        res.status(200).json(comment);
+    } catch (error) {
+        handleError(res, error, "Database error while liking comment");
     }
 });
 
