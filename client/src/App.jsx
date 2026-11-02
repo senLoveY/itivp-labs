@@ -19,6 +19,7 @@ function App() {
   const [search, setSearch] = useState('');
   const [online, setOnline] = useState(new Set());
   const [toasts, setToasts] = useState([]);
+  const [connectionLost, setConnectionLost] = useState(false);
 
   const showToast = useCallback((text) => {
     const id = Date.now() + Math.random();
@@ -69,14 +70,39 @@ function App() {
       showToast(`${email} вышел`);
     }
 
-    // сервер отклонил токен — выходим, как при ответе REST
+    // разрыв, который клиент не инициировал сам: сервер упал или пропала сеть
+    let lost = false;
+
+    function onConnect() {
+      if (lost) showToast('Соединение восстановлено');
+      lost = false;
+      setConnectionLost(false);
+    }
+
+    function onDisconnect(reason) {
+      if (reason === 'io client disconnect') return;
+      lost = true;
+      setConnectionLost(true);
+      // после отключения сервером Socket.IO сам не переподключается
+      if (reason === 'io server disconnect') socket.connect();
+    }
+
+    // сервер отклонил токен — выходим, как при ответе REST;
+    // иначе сервер недоступен, и клиент продолжает попытки
     function onConnectError(err) {
-      if (err.message === 'Invalid or expired token.') tokenExpired();
+      if (err.message === 'Invalid or expired token.') {
+        tokenExpired();
+        return;
+      }
+      lost = true;
+      setConnectionLost(true);
     }
 
     socket.on('users:online', onList);
     socket.on('user:online', onUserOnline);
     socket.on('user:offline', onUserOffline);
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
     socket.on('connect_error', onConnectError);
     connectSocket();
 
@@ -84,9 +110,12 @@ function App() {
       socket.off('users:online', onList);
       socket.off('user:online', onUserOnline);
       socket.off('user:offline', onUserOffline);
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
       socket.off('connect_error', onConnectError);
       disconnectSocket();
       setOnline(new Set());
+      setConnectionLost(false);
     };
   }, [token, showToast]);
 
@@ -145,6 +174,7 @@ function App() {
       )}
       {page === 'stats' && <StatsPage />}
       {page === 'admin' && isAdmin && <AdminPanel />}
+      {connectionLost && <div className="connection-lost">Нет соединения с сервером, переподключение…</div>}
       <Toasts toasts={toasts} />
     </OnlineContext.Provider>
   );
