@@ -9,7 +9,8 @@ const initSocket = (server) => {
     io = new Server(server, { cors: { origin: '*' } });
 
     io.use((socket, next) => {
-        const token = socket.handshake.auth?.token;
+        const header = socket.handshake.headers.authorization;
+        const token = socket.handshake.auth?.token || (header && header.split(' ')[1]);
         if (!token) {
             return next(new Error("Token not provided."));
         }
