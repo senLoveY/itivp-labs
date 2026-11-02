@@ -1,0 +1,476 @@
+const express = require('express');
+const mongoose = require('mongoose');
+const Comment = require('../mongo-models/Comment');
+const { Tweet } = require('../models');
+const { verifyToken, isNotBanned } = require('../middleware/auth');
+
+const router = express.Router();
+
+const checkObjectId = (req, res, next, value) => {
+    if (!mongoose.isValidObjectId(value)) {
+        return res.status(400).json({ error: "Invalid id format" });
+    }
+    next();
+};
+
+router.param('id', checkObjectId);
+router.param('replyId', checkObjectId);
+
+const handleError = (res, error, message) => {
+    if (error instanceof mongoose.Error.ValidationError) {
+        return res.status(400).json({ error: error.message });
+    }
+    console.error(error);
+    res.status(500).json({ error: message });
+};
+
+/**
+ * @swagger
+ * /comments:
+ *   get:
+ *     summary: Get comments (MongoDB)
+ *     tags: [Comments (MongoDB)]
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: tweetId
+ *         schema:
+ *           type: integer
+ *         description: Filter by tweet id from PostgreSQL
+ *       - in: query
+ *         name: tag
+ *         schema:
+ *           type: string
+ *         description: Filter comments whose tags array contains this value
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *     responses:
+ *       200:
+ *         description: List of comments with nested replies
+ *       500:
+ *         description: Database error while fetching comments
+ */
+router.get('/', async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 10;
+        const offset = parseInt(req.query.offset) || 0;
+
+        const filter = {};
+        if (req.query.tweetId) filter.tweetId = Number(req.query.tweetId);
+        if (req.query.tag) filter.tags = req.query.tag.toLowerCase();
+
+        const [comments, total] = await Promise.all([
+            Comment.find(filter).sort({ createdAt: -1 }).skip(offset).limit(limit),
+            Comment.countDocuments(filter)
+        ]);
+
+        res.status(200).json({ total, limit, offset, comments });
+    } catch (error) {
+        handleError(res, error, "Database error while fetching comments");
+    }
+});
+
+/**
+ * @swagger
+ * /comments/stats:
+ *   get:
+ *     summary: Top tweets by number of comments (aggregation pipeline)
+ *     tags: [Comments (MongoDB)]
+ *     security: []
+ *     responses:
+ *       200:
+ *         description: tweetId with counts of comments, replies and likes
+ *       500:
+ *         description: Database error while building statistics
+ */
+router.get('/stats', async (req, res) => {
+    try {
+        const stats = await Comment.aggregate([
+            { $project: { tweetId: 1, likes: 1, repliesCount: { $size: '$replies' } } },
+            {
+                $group: {
+                    _id: '$tweetId',
+                    comments: { $sum: 1 },
+                    replies: { $sum: '$repliesCount' },
+                    likes: { $sum: '$likes' }
+                }
+            },
+            { $sort: { comments: -1, replies: -1 } },
+            { $limit: 5 },
+            { $project: { _id: 0, tweetId: '$_id', comments: 1, replies: 1, likes: 1 } }
+        ]);
+
+        res.status(200).json(stats);
+    } catch (error) {
+        handleError(res, error, "Database error while building statistics");
+    }
+});
+
+/**
+ * @swagger
+ * /comments/{id}:
+ *   get:
+ *     summary: Get comment by id
+ *     tags: [Comments (MongoDB)]
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: MongoDB ObjectId
+ *     responses:
+ *       200:
+ *         description: Comment document
+ *       400:
+ *         description: Invalid id format
+ *       404:
+ *         description: Comment not found
+ */
+router.get('/:id', async (req, res) => {
+    try {
+        const comment = await Comment.findById(req.params.id);
+
+        if (!comment) {
+            return res.status(404).json({ error: "Comment not found" });
+        }
+
+        res.status(200).json(comment);
+    } catch (error) {
+        handleError(res, error, "Database error while fetching comment");
+    }
+});
+
+/**
+ * @swagger
+ * /comments:
+ *   post:
+ *     summary: Create comment to a tweet
+ *     tags: [Comments (MongoDB)]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - tweetId
+ *               - text
+ *             properties:
+ *               tweetId:
+ *                 type: integer
+ *                 example: 1
+ *               text:
+ *                 type: string
+ *                 example: Great post!
+ *               tags:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["opinion"]
+ *     responses:
+ *       201:
+ *         description: Comment created
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Token not provided
+ *       404:
+ *         description: Tweet not found in PostgreSQL
+ */
+router.post('/', verifyToken, isNotBanned, async (req, res) => {
+    try {
+        const { tweetId, text, tags } = req.body;
+
+        if (!Number.isInteger(tweetId)) {
+            return res.status(400).json({ error: "The 'tweetId' field must be an integer." });
+        }
+
+        const tweet = await Tweet.findByPk(tweetId);
+        if (!tweet) {
+            return res.status(404).json({ error: "Tweet not found" });
+        }
+
+        const comment = await Comment.create({
+            tweetId,
+            author: req.user.email,
+            text,
+            tags: tags || []
+        });
+
+        res.status(201).json(comment);
+    } catch (error) {
+        handleError(res, error, "Database error while creating comment");
+    }
+});
+
+/**
+ * @swagger
+ * /comments/{id}:
+ *   put:
+ *     summary: Update comment (previous text is saved to editHistory)
+ *     tags: [Comments (MongoDB)]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - text
+ *             properties:
+ *               text:
+ *                 type: string
+ *                 example: Great post, thanks!
+ *               tags:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Updated comment
+ *       400:
+ *         description: Validation error
+ *       403:
+ *         description: Only author or admin can update
+ *       404:
+ *         description: Comment not found
+ */
+router.put('/:id', verifyToken, isNotBanned, async (req, res) => {
+    try {
+        const { text, tags } = req.body;
+
+        if (!text) {
+            return res.status(400).json({ error: "The 'text' field is mandatory for update." });
+        }
+
+        const comment = await Comment.findById(req.params.id);
+        if (!comment) {
+            return res.status(404).json({ error: "Comment not found" });
+        }
+
+        if (!comment.canEdit(req.user)) {
+            return res.status(403).json({ error: "Access denied. You can only update your own comments." });
+        }
+
+        const update = { $set: { text, tags: tags || comment.tags } };
+        if (text !== comment.text) {
+            update.$push = { editHistory: { text: comment.text } };
+        }
+
+        const updated = await Comment.findByIdAndUpdate(req.params.id, update, { returnDocument: 'after', runValidators: true });
+
+        res.status(200).json(updated);
+    } catch (error) {
+        handleError(res, error, "Database error while updating comment");
+    }
+});
+
+/**
+ * @swagger
+ * /comments/{id}:
+ *   delete:
+ *     summary: Delete comment with all its replies
+ *     tags: [Comments (MongoDB)]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Comment deleted, deleted document returned
+ *       403:
+ *         description: Only author or admin can delete
+ *       404:
+ *         description: Comment not found
+ */
+router.delete('/:id', verifyToken, isNotBanned, async (req, res) => {
+    try {
+        const comment = await Comment.findById(req.params.id);
+        if (!comment) {
+            return res.status(404).json({ error: "Comment not found" });
+        }
+
+        if (!comment.canEdit(req.user)) {
+            return res.status(403).json({ error: "Access denied. You can only delete your own comments." });
+        }
+
+        const deleted = await Comment.findByIdAndDelete(req.params.id);
+
+        res.status(200).json({ message: "Comment successfully deleted", deleted });
+    } catch (error) {
+        handleError(res, error, "Database error while deleting comment");
+    }
+});
+
+/**
+ * @swagger
+ * /comments/{id}/replies:
+ *   post:
+ *     summary: Add reply to comment ($push into nested array)
+ *     tags: [Comments (MongoDB)]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - text
+ *             properties:
+ *               text:
+ *                 type: string
+ *                 example: I agree!
+ *     responses:
+ *       201:
+ *         description: Comment with the new reply
+ *       400:
+ *         description: Validation error
+ *       404:
+ *         description: Comment not found
+ */
+router.post('/:id/replies', verifyToken, isNotBanned, async (req, res) => {
+    try {
+        const comment = await Comment.findByIdAndUpdate(
+            req.params.id,
+            { $push: { replies: { author: req.user.email, text: req.body.text } } },
+            { returnDocument: 'after', runValidators: true }
+        );
+
+        if (!comment) {
+            return res.status(404).json({ error: "Comment not found" });
+        }
+
+        res.status(201).json(comment);
+    } catch (error) {
+        handleError(res, error, "Database error while adding reply");
+    }
+});
+
+/**
+ * @swagger
+ * /comments/{id}/replies/{replyId}/like:
+ *   patch:
+ *     summary: Like a reply ($inc of an element inside array)
+ *     tags: [Comments (MongoDB)]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: replyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Comment with updated reply likes
+ *       404:
+ *         description: Comment or reply not found
+ */
+router.patch('/:id/replies/:replyId/like', verifyToken, isNotBanned, async (req, res) => {
+    try {
+        const comment = await Comment.findOneAndUpdate(
+            { _id: req.params.id, 'replies._id': req.params.replyId },
+            { $inc: { 'replies.$.likes': 1 } },
+            { returnDocument: 'after' }
+        );
+
+        if (!comment) {
+            return res.status(404).json({ error: "Comment or reply not found" });
+        }
+
+        res.status(200).json(comment);
+    } catch (error) {
+        handleError(res, error, "Database error while liking reply");
+    }
+});
+
+/**
+ * @swagger
+ * /comments/{id}/replies/{replyId}:
+ *   delete:
+ *     summary: Delete reply ($pull from nested array)
+ *     tags: [Comments (MongoDB)]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: replyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Comment without deleted reply
+ *       403:
+ *         description: Only reply author, comment author or admin can delete
+ *       404:
+ *         description: Comment or reply not found
+ */
+router.delete('/:id/replies/:replyId', verifyToken, isNotBanned, async (req, res) => {
+    try {
+        const comment = await Comment.findById(req.params.id);
+        const reply = comment && comment.replies.id(req.params.replyId);
+
+        if (!reply) {
+            return res.status(404).json({ error: "Comment or reply not found" });
+        }
+
+        if (reply.author !== req.user.email && !comment.canEdit(req.user)) {
+            return res.status(403).json({ error: "Access denied. You can only delete your own replies." });
+        }
+
+        const updated = await Comment.findByIdAndUpdate(
+            req.params.id,
+            { $pull: { replies: { _id: req.params.replyId } } },
+            { returnDocument: 'after' }
+        );
+
+        res.status(200).json(updated);
+    } catch (error) {
+        handleError(res, error, "Database error while deleting reply");
+    }
+});
+
+module.exports = router;

@@ -1,6 +1,7 @@
 const express = require('express');
 const { Op } = require('sequelize');
 const { Tweet, Like, sequelize } = require('../models');
+const Comment = require('../mongo-models/Comment');
 const { verifyToken, isNotBanned, getUserFromToken } = require('../middleware/auth');
 
 const router = express.Router();
@@ -307,7 +308,8 @@ router.delete('/:id', verifyToken, isNotBanned, async (req, res) => {
         }
 
         await tweet.destroy();
-        
+        await Comment.deleteMany({ tweetId: tweet.id });
+
         res.status(200).json({ message: "Tweet successfully deleted", deleted: tweet });
     } catch (error) {
         console.error(error);
