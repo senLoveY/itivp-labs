@@ -347,8 +347,6 @@ router.delete('/:id', verifyToken, isNotBanned, async (req, res) => {
  */
 router.post('/:id/like', verifyToken, isNotBanned, async (req, res) => {
     try {
-        // строка твита блокируется (SELECT ... FOR UPDATE), поэтому лайки
-        // одного твита обрабатываются по очереди и счётчик не сбивается
         const result = await sequelize.transaction(async (transaction) => {
             const tweet = await Tweet.findByPk(req.params.id, { transaction, lock: transaction.LOCK.UPDATE });
             if (!tweet) return null;
