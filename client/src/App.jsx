@@ -4,6 +4,7 @@ import LoginForm from './auth/LoginForm';
 import TweetList from './feed/TweetList';
 import AdminPanel from './admin/AdminPanel';
 import StatsPage from './stats/StatsPage';
+import UserPage from './profile/UserPage';
 import { getCurrentUser, setOnTokenExpired } from './api';
 import { clearCache } from './cache';
 import './App.css';
@@ -11,6 +12,7 @@ import './App.css';
 function App() {
   const [token, setToken] = useState(() => localStorage.getItem('token'));
   const [page, setPage] = useState('feed');
+  const [profileEmail, setProfileEmail] = useState('');
 
   function logout() {
     localStorage.removeItem('token');
@@ -23,6 +25,17 @@ function App() {
   useEffect(() => {
     setOnTokenExpired(logout);
   });
+
+  // своя страница — это «Мои посты», чужая — отдельная страница пользователя
+  function openProfile(email) {
+    if (email === localStorage.getItem('email')) {
+      setPage('mine');
+    } else {
+      setProfileEmail(email);
+      setPage('user');
+    }
+    window.scrollTo(0, 0);
+  }
 
   if (!token) {
     return <LoginForm onLogin={setToken} />;
@@ -39,9 +52,18 @@ function App() {
         onChangePage={setPage}
         onLogout={logout}
       />
-      {page === 'feed' && <TweetList key="feed" />}
+      {page === 'feed' && <TweetList key="feed" onAuthorClick={openProfile} />}
       {page === 'mine' && (
-        <TweetList key="mine" author={localStorage.getItem('email')} title="Мои посты" showSort />
+        <TweetList
+          key="mine"
+          author={localStorage.getItem('email')}
+          title="Мои посты"
+          showSort
+          onAuthorClick={openProfile}
+        />
+      )}
+      {page === 'user' && (
+        <UserPage email={profileEmail} onBack={() => setPage('feed')} onAuthorClick={openProfile} />
       )}
       {page === 'stats' && <StatsPage />}
       {page === 'admin' && isAdmin && <AdminPanel />}

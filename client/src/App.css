@@ -255,6 +255,14 @@ a {
   color: #e0245e;
 }
 
+.author-link {
+  cursor: pointer;
+}
+
+b.author-link:hover {
+  text-decoration: underline;
+}
+
 .icon {
   width: 15px;
   height: 15px;
@@ -351,6 +359,40 @@ a {
 
 .reply-form {
   margin: 6px 0 0 16px;
+}
+
+/* страница пользователя */
+
+.profile {
+  padding: 12px 16px 16px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.profile > button {
+  margin-left: -12px;
+}
+
+.profile-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.avatar-big {
+  width: 64px;
+  height: 64px;
+  font-size: 26px;
+}
+
+.profile-name {
+  margin: 0;
+  font-size: 20px;
+  word-break: break-all;
+}
+
+.profile-info .hint {
+  margin: 2px 0 0;
 }
 
 /* вход */

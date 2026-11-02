@@ -11,7 +11,7 @@ function makeTempId() {
   return Date.now();
 }
 
-function TweetList({ author = '', title = '', showSort = false }) {
+function TweetList({ author = '', title = '', header = null, showForm = true, showSort = false, onAuthorClick }) {
   const user = getCurrentUser();
   const [tweets, setTweets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -213,8 +213,9 @@ function TweetList({ author = '', title = '', showSort = false }) {
   return (
     <div className="feed">
       {title && <h2 className="page-title">{title}</h2>}
+      {header}
 
-      <TweetForm sending={sending} onAdd={addTweet} />
+      {showForm && <TweetForm sending={sending} onAdd={addTweet} />}
 
       <div className="search">
         <div className="search-row">
@@ -260,6 +261,7 @@ function TweetList({ author = '', title = '', showSort = false }) {
           onDelete={deleteTweet}
           onSave={saveEdit}
           onTagClick={setSearch}
+          onAuthorClick={onAuthorClick}
           onCommentsCountChange={changeCommentsCount}
         />
       ))}

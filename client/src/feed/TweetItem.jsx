@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import CommentSection from './CommentSection';
 
-function TweetItem({ tweet, canChange, commentsCount, onLike, onDelete, onSave, onTagClick, onCommentsCountChange }) {
+function TweetItem({ tweet, canChange, commentsCount, onLike, onDelete, onSave, onTagClick, onAuthorClick, onCommentsCountChange }) {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState('');
   const [showComments, setShowComments] = useState(false);
@@ -19,11 +19,13 @@ function TweetItem({ tweet, canChange, commentsCount, onLike, onDelete, onSave, 
 
   return (
     <div className="tweet">
-      <div className="avatar">{tweet.author?.[0]?.toUpperCase()}</div>
+      <div className="avatar author-link" onClick={() => onAuthorClick(tweet.author)}>
+        {tweet.author?.[0]?.toUpperCase()}
+      </div>
 
       <div className="tweet-body">
         <div className="tweet-top">
-          <b>{tweet.author}</b>
+          <b className="author-link" onClick={() => onAuthorClick(tweet.author)}>{tweet.author}</b>
           <span className="hint">
             {tweet.pending ? 'отправляется...' : new Date(tweet.createdAt).toLocaleString()}
           </span>
