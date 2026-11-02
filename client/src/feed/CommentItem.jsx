@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { updateCommentAPI, deleteCommentAPI, likeCommentAPI, addReplyAPI, likeReplyAPI, deleteReplyAPI, getCurrentUser } from '../api';
+import { HeartIcon } from '../components/Icons';
 
 function CommentItem({ comment, onChange, onDelete, onCountChange }) {
   const user = getCurrentUser();
@@ -118,7 +119,8 @@ function CommentItem({ comment, onChange, onDelete, onCountChange }) {
       {!editing && (
         <div className="comment-buttons">
           <button className={liked ? 'like-btn liked' : 'like-btn'} onClick={like} disabled={busy}>
-            {liked ? '♥' : '♡'} {comment.likes}
+            <HeartIcon />
+            {comment.likes}
           </button>
           <button onClick={() => setReplying(!replying)} disabled={busy}>Ответить</button>
           {canChange && (
@@ -151,7 +153,8 @@ function CommentItem({ comment, onChange, onDelete, onCountChange }) {
                     onClick={() => likeReply(reply._id)}
                     disabled={busy}
                   >
-                    {liked ? '♥' : '♡'} {reply.likes}
+                    <HeartIcon />
+                    {reply.likes}
                   </button>
                   {canDelete && (
                     <button onClick={() => removeReply(reply._id)} disabled={busy}>Удалить</button>

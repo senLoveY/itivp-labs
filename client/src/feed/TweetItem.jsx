@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import CommentSection from './CommentSection';
+import { HeartIcon, CommentIcon } from '../components/Icons';
 
 function TweetItem({ tweet, canChange, commentsCount, onLike, onDelete, onSave, onTagClick, onAuthorClick, onCommentsCountChange }) {
   const [editing, setEditing] = useState(false);
@@ -62,7 +63,8 @@ function TweetItem({ tweet, canChange, commentsCount, onLike, onDelete, onSave, 
             onClick={() => onLike(tweet.id)}
             disabled={tweet.pending}
           >
-            {tweet.liked ? '♥' : '♡'} {tweet.likesCount}
+            <HeartIcon />
+            {tweet.likesCount}
           </button>
           <button
             className={showComments ? 'comments-btn open' : 'comments-btn'}
@@ -70,10 +72,8 @@ function TweetItem({ tweet, canChange, commentsCount, onLike, onDelete, onSave, 
             disabled={tweet.pending}
             title="Комментарии"
           >
-            <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M21 11.5a8.4 8.4 0 0 1-9 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7A8.4 8.4 0 0 1 4 11.5 8.5 8.5 0 0 1 12.5 3h.5a8.5 8.5 0 0 1 8 8z" />
-            </svg>
-            {commentsCount > 0 ? ' ' + commentsCount : ''}
+            <CommentIcon />
+            {commentsCount > 0 && commentsCount}
           </button>
           {canChange && (
             <>

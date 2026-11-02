@@ -251,8 +251,34 @@ a {
   margin-left: -12px;
 }
 
+/* фиксированная ширина, чтобы строка не сдвигалась при изменении чисел */
+.like-btn,
+.comments-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 72px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* при наведении меняется цвет иконки, а не фон всей кнопки */
+.like-btn:hover,
+.comments-btn:hover {
+  background: none;
+}
+
+.like-btn:hover,
 .like-btn.liked {
   color: #e0245e;
+}
+
+.like-btn.liked .icon {
+  fill: currentColor;
+}
+
+.comments-btn:hover,
+.comments-btn.open {
+  color: #111;
 }
 
 .author-link {
@@ -264,17 +290,13 @@ b.author-link:hover {
 }
 
 .icon {
+  flex-shrink: 0;
   width: 15px;
   height: 15px;
-  vertical-align: -2px;
   fill: none;
   stroke: currentColor;
   stroke-width: 2;
   stroke-linejoin: round;
-}
-
-.comments-btn.open {
-  background: #eee;
 }
 
 /* комментарии */
