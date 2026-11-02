@@ -6,6 +6,7 @@ import TweetList from './feed/TweetList';
 import AdminPanel from './admin/AdminPanel';
 import StatsPage from './stats/StatsPage';
 import UserPage from './profile/UserPage';
+import PostPage from './post/PostPage';
 import Toasts from './components/Toasts';
 import { getCurrentUser, setOnTokenExpired, tokenExpired } from './api';
 import { clearCache } from './cache';
@@ -17,6 +18,8 @@ function App() {
   const [token, setToken] = useState(() => localStorage.getItem('token'));
   const [page, setPage] = useState('feed');
   const [profileEmail, setProfileEmail] = useState('');
+  const [post, setPost] = useState(null);
+  const [backPage, setBackPage] = useState('feed');
   const [search, setSearch] = useState('');
   const [online, setOnline] = useState(new Set());
   const [toasts, setToasts] = useState([]);
@@ -49,7 +52,6 @@ function App() {
     setOnTokenExpired(logout);
   });
 
-  // сокет открыт, пока пользователь авторизован
   useEffect(() => {
     if (!token) return;
 
@@ -71,7 +73,6 @@ function App() {
       showToast(`${email} вышел`);
     }
 
-    // разрыв, который клиент не инициировал сам: сервер упал или пропала сеть
     let lost = false;
 
     function onConnect() {
@@ -84,12 +85,9 @@ function App() {
       if (reason === 'io client disconnect') return;
       lost = true;
       setConnectionLost(true);
-      // после отключения сервером Socket.IO сам не переподключается
       if (reason === 'io server disconnect') socket.connect();
     }
 
-    // сервер отклонил токен — выходим, как при ответе REST;
-    // иначе сервер недоступен, и клиент продолжает попытки
     function onConnectError(err) {
       if (err.message === 'Invalid or expired token.') {
         tokenExpired();
@@ -119,6 +117,15 @@ function App() {
       setConnectionLost(false);
     };
   }, [token, showToast]);
+
+  function openPost(tweet) {
+    setPost(tweet);
+    setBackPage(page);
+    setPage('post');
+    window.scrollTo(0, 0);
+  }
+
+  const closePost = useCallback(() => setPage(backPage), [backPage]);
 
   // своя страница — это «Мои посты», чужая — отдельная страница пользователя
   function openProfile(email) {
@@ -153,7 +160,13 @@ function App() {
         <main className={['stats', 'admin'].includes(page) ? 'main wide' : 'main'}>
           <SearchBar value={search} onChange={changeSearch} />
           {page === 'feed' && (
-            <TweetList key="feed" search={search} onSearchChange={changeSearch} onAuthorClick={openProfile} />
+            <TweetList
+              key="feed"
+              search={search}
+              onSearchChange={changeSearch}
+              onAuthorClick={openProfile}
+              onOpenPost={openPost}
+            />
           )}
           {page === 'mine' && (
             <TweetList
@@ -164,6 +177,7 @@ function App() {
               search={search}
               onSearchChange={changeSearch}
               onAuthorClick={openProfile}
+              onOpenPost={openPost}
             />
           )}
           {page === 'user' && (
@@ -172,6 +186,16 @@ function App() {
               search={search}
               onSearchChange={changeSearch}
               onBack={() => setPage('feed')}
+              onAuthorClick={openProfile}
+              onOpenPost={openPost}
+            />
+          )}
+          {page === 'post' && post && (
+            <PostPage
+              key={post.id}
+              tweet={post}
+              onBack={closePost}
+              onTagClick={changeSearch}
               onAuthorClick={openProfile}
             />
           )}

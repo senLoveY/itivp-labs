@@ -13,7 +13,6 @@ function typingText(emails) {
   return `${emails.length} ${emails.length < 5 ? 'человека' : 'человек'} печатают…`;
 }
 
-// заменить комментарий с тем же _id или добавить новый в начало
 function upsert(list, comment) {
   if (list.some(c => c._id === comment._id)) {
     return list.map(c => (c._id === comment._id ? comment : c));
@@ -21,23 +20,54 @@ function upsert(list, comment) {
   return [comment, ...list];
 }
 
-function CommentSection({ tweetId, onCountChange, onAuthorClick }) {
+const PREVIEW = 3;
+const PREVIEW_REPLIES = 2;
+const PAGE = 20;
+
+function CommentSection({ tweetId, full = false, commentsCount = 0, onShowAll, onCountChange, onAuthorClick }) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [typers, setTypers] = useState([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const typing = useRef({ active: false, timer: null });
+  const sentinel = useRef(null);
 
   useEffect(() => {
-    fetchCommentsAPI(tweetId)
-      .then(res => setComments(res.data.comments))
+    fetchCommentsAPI(tweetId, full ? PAGE : PREVIEW)
+      .then(res => {
+        setComments(res.data.comments);
+        setHasMore(res.data.comments.length < res.data.total);
+      })
       .catch(err => setError('Не удалось загрузить комментарии: ' + errorText(err)))
       .finally(() => setLoading(false));
-  }, [tweetId]);
+  }, [tweetId, full]);
 
-  // пока ветка открыта, клиент находится в комнате поста
+  function loadMore() {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    fetchCommentsAPI(tweetId, PAGE, comments.length)
+      .then(res => {
+        setComments(prev => [...prev, ...res.data.comments.filter(c => !prev.some(p => p._id === c._id))]);
+        setHasMore(res.data.comments.length === PAGE);
+      })
+      .catch(err => setError('Не удалось загрузить комментарии: ' + errorText(err)))
+      .finally(() => setLoadingMore(false));
+  }
+
+  useEffect(() => {
+    if (!full || !hasMore || !sentinel.current) return;
+    const observer = new IntersectionObserver(
+      entries => { if (entries[0].isIntersecting) loadMore(); },
+      { rootMargin: '200px' }
+    );
+    observer.observe(sentinel.current);
+    return () => observer.disconnect();
+  });
+
   useEffect(() => {
     const me = getCurrentUser()?.email;
 
@@ -92,7 +122,6 @@ function CommentSection({ tweetId, onCountChange, onAuthorClick }) {
     }
   }
 
-  // на сервер уходит только начало и конец набора, а не каждое нажатие
   function changeText(value) {
     setText(value);
     const state = typing.current;
@@ -131,6 +160,9 @@ function CommentSection({ tweetId, onCountChange, onAuthorClick }) {
     setComments(prev => prev.filter(c => c._id !== id));
   }
 
+  const visible = full ? comments : comments.slice(0, PREVIEW);
+  const shown = visible.reduce((n, c) => n + 1 + Math.min(c.replies.length, PREVIEW_REPLIES), 0);
+
   return (
     <div className="comments">
       <form className="comment-form" onSubmit={send}>
@@ -142,7 +174,6 @@ function CommentSection({ tweetId, onCountChange, onAuthorClick }) {
           maxLength={280}
         />
         <button className="btn-main" disabled={sending || !text.trim()}>Отправить</button>
-        {/* лежит поверх отступа под формой и не сдвигает комментарии */}
         {typers.length > 0 && <span className="hint typing">{typingText(typers)}</span>}
       </form>
 
@@ -150,16 +181,25 @@ function CommentSection({ tweetId, onCountChange, onAuthorClick }) {
       {loading && <Loader />}
       {!loading && !error && comments.length === 0 && <p className="hint">Комментариев пока нет</p>}
 
-      {comments.map(comment => (
+      {visible.map(comment => (
         <CommentItem
           key={comment._id}
           comment={comment}
+          repliesLimit={full ? undefined : PREVIEW_REPLIES}
+          onShowAll={onShowAll}
           onChange={replaceComment}
           onDelete={removeComment}
           onCountChange={onCountChange}
           onAuthorClick={onAuthorClick}
         />
       ))}
+
+      {full && hasMore && <div ref={sentinel}>{loadingMore && <Loader />}</div>}
+      {!full && !loading && commentsCount > shown && (
+        <button className="show-all" onClick={onShowAll}>
+          Все комментарии ({commentsCount})
+        </button>
+      )}
     </div>
   );
 }

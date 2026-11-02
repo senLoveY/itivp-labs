@@ -1,9 +1,9 @@
-import { ChartIcon, HomeIcon, LogoutIcon, ShieldIcon, UserIcon } from './Icons';
+import { ChartIcon, CompassIcon, LogoutIcon, ShieldIcon, UserIcon } from './Icons';
 import NotificationBell from './NotificationBell';
 
 function Sidebar({ email, isAdmin, page, onlineCount, onChangePage, onLogout, onToast }) {
   const pages = [
-    { id: 'feed', title: 'Лента', icon: <HomeIcon /> },
+    { id: 'feed', title: 'Лента', icon: <CompassIcon /> },
     { id: 'mine', title: 'Мои посты', icon: <UserIcon /> },
     { id: 'stats', title: 'Статистика', icon: <ChartIcon /> }
   ];

@@ -13,7 +13,6 @@ function TweetForm({ sending, onAdd }) {
   const [text, setText] = useState('');
   const [tags, setTags] = useState('');
 
-  // пока окно открыто: Esc закрывает, страница под ним не прокручивается
   useEffect(() => {
     if (!open) return;
 
@@ -29,8 +28,6 @@ function TweetForm({ sending, onAdd }) {
     };
   }, [open]);
 
-  // окно закрывается сразу, твит добавляется в ленту оптимистично;
-  // при ошибке окно открывается снова с тем же текстом
   async function handleSubmit(e) {
     e.preventDefault();
     if (!text.trim() || sending) return;

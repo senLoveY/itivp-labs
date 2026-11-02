@@ -20,7 +20,8 @@ function TweetList({
   showSort = false,
   search = '',
   onSearchChange,
-  onAuthorClick
+  onAuthorClick,
+  onOpenPost
 }) {
   const user = getCurrentUser();
   const [tweets, setTweets] = useState([]);
@@ -33,7 +34,6 @@ function TweetList({
   const [notice, setNotice] = useState('');
   const [sort, setSort] = useState('new');
 
-  // новые посты других пользователей, ещё не показанные в ленте
   const [fresh, setFresh] = useState([]);
 
   const [commentCounts, setCommentCounts] = useState({});
@@ -135,7 +135,6 @@ function TweetList({
       .catch(() => ids.forEach(id => requestedCounts.current.delete(id)));
   }, [tweets]);
 
-  // изменения от других пользователей приходят через сокет
   useEffect(() => {
     function onNew(tweet) {
       if (tweet.author === user?.email || author || search) return;
@@ -332,6 +331,7 @@ function TweetList({
           onSave={saveEdit}
           onTagClick={onSearchChange}
           onAuthorClick={onAuthorClick}
+          onOpenPost={onOpenPost}
           onCommentsCountChange={changeCommentsCount}
         />
       ))}

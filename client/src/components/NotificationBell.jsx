@@ -19,7 +19,6 @@ function NotificationBell({ onToast }) {
   const [open, setOpen] = useState(false);
   const box = useRef(null);
 
-  // история — из MongoDB через REST, новые уведомления — через сокет
   useEffect(() => {
     function load() {
       fetchNotificationsAPI()
@@ -52,7 +51,6 @@ function NotificationBell({ onToast }) {
     };
   }, [onToast]);
 
-  // закрыть список по клику вне его или по Esc
   useEffect(() => {
     if (!open) return;
 
@@ -72,7 +70,6 @@ function NotificationBell({ onToast }) {
     };
   }, [open]);
 
-  // непрочитанные подсвечены, пока список открыт, и гаснут после закрытия
   function close() {
     setOpen(false);
     setItems(prev => prev.map(n => ({ ...n, read: true })));

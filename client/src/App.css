@@ -63,11 +63,7 @@ a {
   color: #111;
 }
 
-/* раскладка: боковая панель слева, колонка с контентом справа */
 
-/* отступ слева считается от ширины «панель + лента + такая же пустая колонка справа»,
-   поэтому лента стоит по центру экрана, а панель не сдвигается на широких страницах:
-   статистика и админка расширяются только вправо */
 .layout {
   display: flex;
   align-items: flex-start;
@@ -83,7 +79,6 @@ a {
   flex-basis: 960px;
 }
 
-/* боковая панель */
 
 .sidebar {
   position: sticky;
@@ -188,7 +183,6 @@ a {
   color: #e0245e;
 }
 
-/* поиск над колонкой */
 
 .topbar {
   position: sticky;
@@ -243,7 +237,6 @@ a {
   color: #111;
 }
 
-/* на узком экране от панели остаются только иконки */
 @media (max-width: 1000px) {
   .sidebar {
     width: 72px;
@@ -777,7 +770,6 @@ b.author-link:hover,
   }
 }
 
-/* онлайн-статус */
 .online-dot {
   position: absolute;
   right: -1px;
@@ -816,7 +808,6 @@ b.author-link:hover,
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* новые посты из сокета */
 .fresh-btn {
   display: block;
   width: calc(100% - 32px);
@@ -849,7 +840,6 @@ b.author-link:hover,
   pointer-events: none;
 }
 
-/* уведомления */
 .bell {
   position: relative;
 }
@@ -917,7 +907,6 @@ b.author-link:hover,
   color: #333;
 }
 
-/* поверх страницы, чтобы не сдвигать ленту */
 .connection-lost {
   position: fixed;
   top: 16px;
@@ -932,7 +921,6 @@ b.author-link:hover,
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
-/* строка «Что нового?» и окно новой публикации */
 .compose-row {
   display: flex;
   align-items: center;
@@ -1054,4 +1042,33 @@ b.author-link:hover,
 
 @keyframes modal-in {
   from { opacity: 0; transform: translateY(12px) scale(0.98); }
+}
+
+.show-all {
+  margin: 4px 0 0;
+  padding: 4px 0;
+  color: #1d6fd1;
+  font-size: 14px;
+}
+
+.show-all:hover {
+  background: none;
+  text-decoration: underline;
+}
+
+.tweet-text.clickable {
+  cursor: pointer;
+}
+
+.post-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #e5e5e5;
+  font-size: 17px;
+}
+
+.post-head button {
+  margin-left: -12px;
 }
