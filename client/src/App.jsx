@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import Header from './components/Header';
+import Sidebar from './components/Sidebar';
+import SearchBar from './components/SearchBar';
 import LoginForm from './auth/LoginForm';
 import TweetList from './feed/TweetList';
 import AdminPanel from './admin/AdminPanel';
@@ -138,42 +139,47 @@ function App() {
 
   return (
     <OnlineContext.Provider value={online}>
-      <Header
-        email={localStorage.getItem('email')}
-        isAdmin={isAdmin}
-        page={page}
-        search={search}
-        onChangePage={setPage}
-        onSearchChange={changeSearch}
-        onlineCount={online.size}
-        onLogout={logout}
-        onToast={showToast}
-      />
-      {page === 'feed' && (
-        <TweetList key="feed" search={search} onSearchChange={changeSearch} onAuthorClick={openProfile} />
-      )}
-      {page === 'mine' && (
-        <TweetList
-          key="mine"
-          author={localStorage.getItem('email')}
-          title="Мои посты"
-          showSort
-          search={search}
-          onSearchChange={changeSearch}
-          onAuthorClick={openProfile}
+      <div className="layout">
+        <Sidebar
+          email={localStorage.getItem('email')}
+          isAdmin={isAdmin}
+          page={page}
+          onlineCount={online.size}
+          onChangePage={setPage}
+          onLogout={logout}
+          onToast={showToast}
         />
-      )}
-      {page === 'user' && (
-        <UserPage
-          email={profileEmail}
-          search={search}
-          onSearchChange={changeSearch}
-          onBack={() => setPage('feed')}
-          onAuthorClick={openProfile}
-        />
-      )}
-      {page === 'stats' && <StatsPage />}
-      {page === 'admin' && isAdmin && <AdminPanel />}
+
+        <main className={['stats', 'admin'].includes(page) ? 'main wide' : 'main'}>
+          <SearchBar value={search} onChange={changeSearch} />
+          {page === 'feed' && (
+            <TweetList key="feed" search={search} onSearchChange={changeSearch} onAuthorClick={openProfile} />
+          )}
+          {page === 'mine' && (
+            <TweetList
+              key="mine"
+              author={localStorage.getItem('email')}
+              title="Мои посты"
+              showSort
+              search={search}
+              onSearchChange={changeSearch}
+              onAuthorClick={openProfile}
+            />
+          )}
+          {page === 'user' && (
+            <UserPage
+              email={profileEmail}
+              search={search}
+              onSearchChange={changeSearch}
+              onBack={() => setPage('feed')}
+              onAuthorClick={openProfile}
+            />
+          )}
+          {page === 'stats' && <StatsPage />}
+          {page === 'admin' && isAdmin && <AdminPanel />}
+        </main>
+      </div>
+
       {connectionLost && <div className="connection-lost">Нет соединения с сервером, переподключение…</div>}
       <Toasts toasts={toasts} />
     </OnlineContext.Provider>

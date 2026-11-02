@@ -1,3 +1,9 @@
+/* место под полосу прокрутки зарезервировано всегда, поэтому страница
+   не сдвигается, когда прокрутка отключается под всплывающим окном */
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   margin: 0;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;

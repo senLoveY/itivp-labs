@@ -52,7 +52,7 @@ function NotificationBell({ onToast }) {
     };
   }, [onToast]);
 
-  // закрыть список по клику вне его
+  // закрыть список по клику вне его или по Esc
   useEffect(() => {
     if (!open) return;
 
@@ -60,8 +60,16 @@ function NotificationBell({ onToast }) {
       if (!box.current.contains(e.target)) close();
     }
 
+    function onKey(e) {
+      if (e.key === 'Escape') close();
+    }
+
     document.addEventListener('mousedown', onClick);
-    return () => document.removeEventListener('mousedown', onClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('keydown', onKey);
+    };
   }, [open]);
 
   // непрочитанные подсвечены, пока список открыт, и гаснут после закрытия
@@ -84,9 +92,12 @@ function NotificationBell({ onToast }) {
 
   return (
     <div className="bell" ref={box}>
-      <button className="bell-btn" onClick={toggle} title="Уведомления">
-        <BellIcon />
-        {unread > 0 && <span className="bell-badge">{unread > 9 ? '9+' : unread}</span>}
+      <button className={open ? 'side-link active' : 'side-link'} onClick={toggle} title="Уведомления">
+        <span className="bell-icon">
+          <BellIcon />
+          {unread > 0 && <span className="bell-badge">{unread > 9 ? '9+' : unread}</span>}
+        </span>
+        <span className="side-label">Уведомления</span>
       </button>
 
       {open && (
