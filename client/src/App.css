@@ -80,6 +80,7 @@ a {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16px;
 }
 
 .logo {
@@ -102,6 +103,57 @@ a {
 
 .header .hint {
   margin-right: 8px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.header-search {
+  position: relative;
+  flex: 1;
+  max-width: 260px;
+  margin-left: auto;
+}
+
+.header-search .icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #999;
+  pointer-events: none;
+}
+
+.header-search input {
+  padding: 6px 30px 6px 34px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: #f2f2f2;
+}
+
+.header-search input:focus {
+  border-color: #111;
+  background: #fff;
+}
+
+.search-clear {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+  padding: 0 8px;
+  font-size: 18px;
+  line-height: 1;
+  color: #999;
+}
+
+.search-clear:hover {
+  background: none;
+  color: #111;
 }
 
 /* лента */
@@ -141,18 +193,27 @@ a {
   padding: 0 16px;
 }
 
-.page-title {
+.list-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.toolbar-title {
   margin: 0;
-  padding: 16px 16px 0;
   font-size: 20px;
 }
 
-.search-row {
-  display: flex;
-  gap: 8px;
+.search-info {
+  margin: 0;
+  padding: 10px 16px;
+  border-bottom: 1px solid #e5e5e5;
 }
 
-.search-row select {
+.list-toolbar select {
+  margin-left: auto;
   font: inherit;
   padding: 8px 10px;
   border: 1px solid #ddd;

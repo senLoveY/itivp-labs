@@ -11,7 +11,16 @@ function makeTempId() {
   return Date.now();
 }
 
-function TweetList({ author = '', title = '', header = null, showForm = true, showSort = false, onAuthorClick }) {
+function TweetList({
+  author = '',
+  title = '',
+  header = null,
+  showForm = true,
+  showSort = false,
+  search = '',
+  onSearchChange,
+  onAuthorClick
+}) {
   const user = getCurrentUser();
   const [tweets, setTweets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,7 +30,6 @@ function TweetList({ author = '', title = '', header = null, showForm = true, sh
 
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState('');
-  const [search, setSearch] = useState('');
   const [sort, setSort] = useState('new');
 
   const [commentCounts, setCommentCounts] = useState({});
@@ -218,19 +226,11 @@ function TweetList({ author = '', title = '', header = null, showForm = true, sh
 
   return (
     <div className="feed">
-      {title && <h2 className="page-title">{title}</h2>}
       {header}
 
-      {showForm && <TweetForm sending={sending} onAdd={addTweet} />}
-
-      <div className="search">
-        <div className="search-row">
-          <input
-            type="text"
-            placeholder="Поиск"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+      {(title || showSort) && (
+        <div className="list-toolbar">
+          {title && <h2 className="toolbar-title">{title}</h2>}
           {showSort && (
             <select value={sort} onChange={e => setSort(e.target.value)}>
               <option value="new">Сначала новые</option>
@@ -239,10 +239,15 @@ function TweetList({ author = '', title = '', header = null, showForm = true, sh
             </select>
           )}
         </div>
-        <p className="hint">
-          Загружено твитов: {tweets.length}
+      )}
+
+      {showForm && <TweetForm sending={sending} onAdd={addTweet} />}
+
+      {search && (
+        <p className="hint search-info">
+          Результаты по запросу «{search}»
         </p>
-      </div>
+      )}
 
       {notice && <p className="error message">{notice}</p>}
 
@@ -266,7 +271,7 @@ function TweetList({ author = '', title = '', header = null, showForm = true, sh
           onLike={likeTweet}
           onDelete={deleteTweet}
           onSave={saveEdit}
-          onTagClick={setSearch}
+          onTagClick={onSearchChange}
           onAuthorClick={onAuthorClick}
           onCommentsCountChange={changeCommentsCount}
         />
