@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const replySchema = new mongoose.Schema({
     author: { type: String, required: true },
+    replyTo: { type: String, trim: true },
     text: { type: String, required: true, trim: true, maxlength: 280 },
     likes: { type: Number, default: 0, min: 0 },
     likedBy: [String]

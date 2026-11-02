@@ -346,7 +346,8 @@ a {
   cursor: pointer;
 }
 
-b.author-link:hover {
+b.author-link:hover,
+.mention.author-link:hover {
   text-decoration: underline;
 }
 
@@ -438,6 +439,11 @@ b.author-link:hover {
 
 .reply {
   padding: 4px 0;
+}
+
+.mention {
+  margin-right: 4px;
+  color: #888;
 }
 
 .reply-form {

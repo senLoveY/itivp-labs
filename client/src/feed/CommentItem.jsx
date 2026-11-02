@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { updateCommentAPI, deleteCommentAPI, likeCommentAPI, addReplyAPI, likeReplyAPI, deleteReplyAPI, getCurrentUser } from '../api';
 import { HeartIcon } from '../components/Icons';
 
-function CommentItem({ comment, onChange, onDelete, onCountChange }) {
+function CommentItem({ comment, onChange, onDelete, onCountChange, onAuthorClick }) {
   const user = getCurrentUser();
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState('');
   const [replying, setReplying] = useState(false);
+  const [replyTo, setReplyTo] = useState('');
   const [replyText, setReplyText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -60,11 +61,21 @@ function CommentItem({ comment, onChange, onDelete, onCountChange }) {
     run(() => likeCommentAPI(comment._id), onChange, 'Не удалось поставить лайк');
   }
 
+  // ответ на комментарий (target пустой) или на конкретный ответ — тогда в нём сохраняется адресат
+  function toggleReply(target = '') {
+    if (replying && replyTo === target) {
+      setReplying(false);
+      return;
+    }
+    setReplyTo(target);
+    setReplying(true);
+  }
+
   function sendReply(e) {
     e.preventDefault();
     if (!replyText.trim() || busy) return;
     run(
-      () => addReplyAPI(comment._id, replyText.trim()),
+      () => addReplyAPI(comment._id, replyText.trim(), replyTo || undefined),
       data => {
         onChange(data);
         onCountChange(n => n + 1);
@@ -93,7 +104,7 @@ function CommentItem({ comment, onChange, onDelete, onCountChange }) {
   return (
     <div className="comment">
       <div className="comment-top">
-        <b>{comment.author}</b>
+        <b className="author-link" onClick={() => onAuthorClick(comment.author)}>{comment.author}</b>
         <span className="hint">
           {new Date(comment.createdAt).toLocaleString()}
           {comment.editHistory.length > 0 && ' · изменено'}
@@ -122,7 +133,7 @@ function CommentItem({ comment, onChange, onDelete, onCountChange }) {
             <HeartIcon />
             {comment.likes}
           </button>
-          <button onClick={() => setReplying(!replying)} disabled={busy}>Ответить</button>
+          <button onClick={() => toggleReply()} disabled={busy}>Ответить</button>
           {canChange && (
             <>
               <button onClick={startEdit} disabled={busy}>Изменить</button>
@@ -143,10 +154,17 @@ function CommentItem({ comment, onChange, onDelete, onCountChange }) {
             return (
               <div key={reply._id} className="reply">
                 <div className="comment-top">
-                  <b>{reply.author}</b>
+                  <b className="author-link" onClick={() => onAuthorClick(reply.author)}>{reply.author}</b>
                   <span className="hint">{new Date(reply.createdAt).toLocaleString()}</span>
                 </div>
-                <p className="comment-text">{reply.text}</p>
+                <p className="comment-text">
+                  {reply.replyTo && (
+                    <span className="mention author-link" onClick={() => onAuthorClick(reply.replyTo)}>
+                      @{reply.replyTo}
+                    </span>
+                  )}
+                  {reply.text}
+                </p>
                 <div className="comment-buttons">
                   <button
                     className={liked ? 'like-btn liked' : 'like-btn'}
@@ -156,6 +174,7 @@ function CommentItem({ comment, onChange, onDelete, onCountChange }) {
                     <HeartIcon />
                     {reply.likes}
                   </button>
+                  <button onClick={() => toggleReply(reply.author)} disabled={busy}>Ответить</button>
                   {canDelete && (
                     <button onClick={() => removeReply(reply._id)} disabled={busy}>Удалить</button>
                   )}
@@ -167,10 +186,10 @@ function CommentItem({ comment, onChange, onDelete, onCountChange }) {
       )}
 
       {replying && (
-        <form className="comment-form reply-form" onSubmit={sendReply}>
+        <form key={replyTo} className="comment-form reply-form" onSubmit={sendReply}>
           <input
             type="text"
-            placeholder={`Ответ для ${comment.author}`}
+            placeholder={`Ответ для ${replyTo || comment.author}`}
             value={replyText}
             onChange={e => setReplyText(e.target.value)}
             maxLength={280}

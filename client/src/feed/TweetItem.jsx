@@ -87,6 +87,7 @@ function TweetItem({ tweet, canChange, commentsCount, onLike, onDelete, onSave, 
           <CommentSection
             tweetId={tweet.id}
             onCountChange={update => onCommentsCountChange(tweet.id, update)}
+            onAuthorClick={onAuthorClick}
           />
         )}
       </div>

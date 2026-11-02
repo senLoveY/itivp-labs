@@ -427,6 +427,10 @@ router.patch('/:id/like', verifyToken, isNotBanned, async (req, res) => {
  *               text:
  *                 type: string
  *                 example: I agree!
+ *               replyTo:
+ *                 type: string
+ *                 description: Optional. Email of the reply author being answered
+ *                 example: anna@mail.com
  *     responses:
  *       201:
  *         description: Comment with the new reply
@@ -437,9 +441,11 @@ router.patch('/:id/like', verifyToken, isNotBanned, async (req, res) => {
  */
 router.post('/:id/replies', verifyToken, isNotBanned, async (req, res) => {
     try {
+        const { text, replyTo } = req.body;
+
         const comment = await Comment.findByIdAndUpdate(
             req.params.id,
-            { $push: { replies: { author: req.user.email, text: req.body.text } } },
+            { $push: { replies: { author: req.user.email, replyTo, text } } },
             { returnDocument: 'after', runValidators: true }
         );
 

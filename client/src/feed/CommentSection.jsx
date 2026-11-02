@@ -7,7 +7,7 @@ function errorText(err) {
   return err.response?.data?.error || 'сервер недоступен';
 }
 
-function CommentSection({ tweetId, onCountChange }) {
+function CommentSection({ tweetId, onCountChange, onAuthorClick }) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -71,6 +71,7 @@ function CommentSection({ tweetId, onCountChange }) {
           onChange={replaceComment}
           onDelete={removeComment}
           onCountChange={onCountChange}
+          onAuthorClick={onAuthorClick}
         />
       ))}
     </div>
