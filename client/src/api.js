@@ -55,3 +55,12 @@ export const fetchLogsAPI = (page, search, signal) =>
   api.get('/admin/logs', { params: { page, limit: 10, search }, signal });
 
 export const fetchMyStatsAPI = () => api.get('/stats/me');
+
+export const fetchCommentCountsAPI = (tweetIds) => api.get('/comments/counts', { params: { tweetIds: tweetIds.join(',') } });
+export const fetchCommentsAPI = (tweetId) => api.get('/comments', { params: { tweetId, limit: 100 } });
+export const createCommentAPI = (tweetId, text) => api.post('/comments', { tweetId, text });
+export const updateCommentAPI = (id, text) => api.put(`/comments/${id}`, { text });
+export const deleteCommentAPI = (id) => api.delete(`/comments/${id}`);
+export const addReplyAPI = (id, text) => api.post(`/comments/${id}/replies`, { text });
+export const likeReplyAPI = (id, replyId) => api.patch(`/comments/${id}/replies/${replyId}/like`);
+export const deleteReplyAPI = (id, replyId) => api.delete(`/comments/${id}/replies/${replyId}`);

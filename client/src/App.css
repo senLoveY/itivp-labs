@@ -255,6 +255,104 @@ a {
   color: #e0245e;
 }
 
+.icon {
+  width: 15px;
+  height: 15px;
+  vertical-align: -2px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.comments-btn.open {
+  background: #eee;
+}
+
+/* комментарии */
+
+.comments {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.comment-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.comment-form button {
+  margin-right: 0;
+  white-space: nowrap;
+}
+
+.comment {
+  padding: 8px 0;
+  border-bottom: 1px solid #f5f5f5;
+  font-size: 14px;
+}
+
+.comment:last-child {
+  border-bottom: none;
+}
+
+.comment-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.comment-top b {
+  font-size: 13px;
+  word-break: break-all;
+}
+
+.comment-top .hint {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.comment-text {
+  margin: 4px 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.comment textarea {
+  margin: 4px 0;
+}
+
+.comment-buttons {
+  margin-left: -12px;
+}
+
+.comment-buttons button {
+  font-size: 13px;
+  padding: 3px 12px;
+}
+
+.comment-error {
+  margin: 4px 0;
+  font-size: 13px;
+}
+
+.replies {
+  margin-top: 4px;
+  margin-left: 4px;
+  padding-left: 12px;
+  border-left: 2px solid #eee;
+}
+
+.reply {
+  padding: 4px 0;
+}
+
+.reply-form {
+  margin: 6px 0 0 16px;
+}
+
 /* вход */
 
 .login {

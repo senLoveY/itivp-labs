@@ -116,6 +116,48 @@ router.get('/stats', async (req, res) => {
 
 /**
  * @swagger
+ * /comments/counts:
+ *   get:
+ *     summary: Number of comments and replies for several tweets
+ *     tags: [Comments (MongoDB)]
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: tweetIds
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Comma-separated tweet ids
+ *         example: 1,2,3
+ *     responses:
+ *       200:
+ *         description: Object { tweetId → count }, tweets without comments are omitted
+ *       500:
+ *         description: Database error while counting comments
+ */
+router.get('/counts', async (req, res) => {
+    try {
+        const tweetIds = String(req.query.tweetIds || '')
+            .split(',')
+            .map(Number)
+            .filter(Number.isInteger);
+
+        const rows = await Comment.aggregate([
+            { $match: { tweetId: { $in: tweetIds } } },
+            { $group: { _id: '$tweetId', count: { $sum: { $add: [1, { $size: '$replies' }] } } } }
+        ]);
+
+        const counts = {};
+        rows.forEach(row => { counts[row._id] = row.count; });
+
+        res.status(200).json(counts);
+    } catch (error) {
+        handleError(res, error, "Database error while counting comments");
+    }
+});
+
+/**
+ * @swagger
  * /comments/{id}:
  *   get:
  *     summary: Get comment by id
@@ -382,7 +424,7 @@ router.post('/:id/replies', verifyToken, isNotBanned, async (req, res) => {
  * @swagger
  * /comments/{id}/replies/{replyId}/like:
  *   patch:
- *     summary: Like a reply ($inc of an element inside array)
+ *     summary: Like or unlike a reply ($inc of an element inside array, one like per user)
  *     tags: [Comments (MongoDB)]
  *     security:
  *       - bearerAuth: []
@@ -405,11 +447,22 @@ router.post('/:id/replies', verifyToken, isNotBanned, async (req, res) => {
  */
 router.patch('/:id/replies/:replyId/like', verifyToken, isNotBanned, async (req, res) => {
     try {
-        const comment = await Comment.findOneAndUpdate(
-            { _id: req.params.id, 'replies._id': req.params.replyId },
-            { $inc: { 'replies.$.likes': 1 } },
+        const { id, replyId } = req.params;
+        const email = req.user.email;
+
+        let comment = await Comment.findOneAndUpdate(
+            { _id: id, replies: { $elemMatch: { _id: replyId, likedBy: { $ne: email } } } },
+            { $inc: { 'replies.$.likes': 1 }, $push: { 'replies.$.likedBy': email } },
             { returnDocument: 'after' }
         );
+
+        if (!comment) {
+            comment = await Comment.findOneAndUpdate(
+                { _id: id, replies: { $elemMatch: { _id: replyId, likedBy: email } } },
+                { $inc: { 'replies.$.likes': -1 }, $pull: { 'replies.$.likedBy': email } },
+                { returnDocument: 'after' }
+            );
+        }
 
         if (!comment) {
             return res.status(404).json({ error: "Comment or reply not found" });

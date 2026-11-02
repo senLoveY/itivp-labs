@@ -3,7 +3,8 @@ const mongoose = require('mongoose');
 const replySchema = new mongoose.Schema({
     author: { type: String, required: true },
     text: { type: String, required: true, trim: true, maxlength: 280 },
-    likes: { type: Number, default: 0, min: 0 }
+    likes: { type: Number, default: 0, min: 0 },
+    likedBy: [String]
 }, { timestamps: true });
 
 const editSchema = new mongoose.Schema({
