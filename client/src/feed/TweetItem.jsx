@@ -3,7 +3,7 @@ import CommentSection from './CommentSection';
 import { HeartIcon, CommentIcon } from '../components/Icons';
 import { OnlineContext } from '../online';
 
-function TweetItem({ tweet, full = false, canChange, commentsCount, onLike, onDelete, onSave, onTagClick, onAuthorClick, onOpenPost, onCommentsCountChange }) {
+function TweetItem({ tweet, full = false, canChange, commentsCount, onLike, onDelete, onSave, onTagClick, onAuthorClick, onOpenPost }) {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState('');
   const [showComments, setShowComments] = useState(false);
@@ -97,7 +97,6 @@ function TweetItem({ tweet, full = false, canChange, commentsCount, onLike, onDe
             full={full}
             commentsCount={commentsCount}
             onShowAll={() => onOpenPost?.(tweet)}
-            onCountChange={update => onCommentsCountChange(tweet.id, update)}
             onAuthorClick={onAuthorClick}
           />
         )}

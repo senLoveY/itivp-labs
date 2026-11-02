@@ -183,10 +183,6 @@ function TweetList({
     window.scrollTo(0, 0);
   }
 
-  function changeCommentsCount(tweetId, update) {
-    setCommentCounts(prev => ({ ...prev, [tweetId]: Math.max(0, update(prev[tweetId] || 0)) }));
-  }
-
   async function addTweet(content, hashtags) {
     const data = { content, hashtags };
     const tempId = makeTempId();
@@ -332,7 +328,6 @@ function TweetList({
           onTagClick={onSearchChange}
           onAuthorClick={onAuthorClick}
           onOpenPost={onOpenPost}
-          onCommentsCountChange={changeCommentsCount}
         />
       ))}
 

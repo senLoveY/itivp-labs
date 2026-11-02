@@ -24,7 +24,7 @@ const PREVIEW = 3;
 const PREVIEW_REPLIES = 2;
 const PAGE = 20;
 
-function CommentSection({ tweetId, full = false, commentsCount = 0, onShowAll, onCountChange, onAuthorClick }) {
+function CommentSection({ tweetId, full = false, commentsCount = 0, onShowAll, onAuthorClick }) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -143,7 +143,6 @@ function CommentSection({ tweetId, full = false, commentsCount = 0, onShowAll, o
     try {
       const res = await createCommentAPI(tweetId, text.trim());
       setComments(prev => upsert(prev, res.data));
-      onCountChange(n => n + 1);
       setText('');
     } catch (err) {
       setError('Не удалось отправить комментарий: ' + errorText(err));
@@ -189,7 +188,6 @@ function CommentSection({ tweetId, full = false, commentsCount = 0, onShowAll, o
           onShowAll={onShowAll}
           onChange={replaceComment}
           onDelete={removeComment}
-          onCountChange={onCountChange}
           onAuthorClick={onAuthorClick}
         />
       ))}

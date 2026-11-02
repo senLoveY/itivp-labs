@@ -117,7 +117,6 @@ function PostPage({ tweet: initial, onBack, onTagClick, onAuthorClick }) {
         onSave={save}
         onTagClick={onTagClick}
         onAuthorClick={onAuthorClick}
-        onCommentsCountChange={(id, update) => setCommentsCount(n => Math.max(0, update(n)))}
       />
     </div>
   );

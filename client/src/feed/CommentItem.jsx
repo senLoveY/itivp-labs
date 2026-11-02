@@ -17,7 +17,7 @@ function repliesWord(n) {
   return 'ответов';
 }
 
-function CommentItem({ comment, repliesLimit, onShowAll, onChange, onDelete, onCountChange, onAuthorClick }) {
+function CommentItem({ comment, repliesLimit, onShowAll, onChange, onDelete, onAuthorClick }) {
   const user = getCurrentUser();
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState('');
@@ -67,10 +67,7 @@ function CommentItem({ comment, repliesLimit, onShowAll, onChange, onDelete, onC
   function remove() {
     run(
       () => deleteCommentAPI(comment._id),
-      () => {
-        onDelete(comment._id);
-        onCountChange(n => n - 1 - comment.replies.length);
-      },
+      () => onDelete(comment._id),
       'Не удалось удалить комментарий'
     );
   }
@@ -95,7 +92,6 @@ function CommentItem({ comment, repliesLimit, onShowAll, onChange, onDelete, onC
       () => addReplyAPI(comment._id, replyText.trim(), replyTo || undefined),
       data => {
         onChange(data);
-        onCountChange(n => n + 1);
         setReplyText('');
         setReplying(false);
       },
@@ -127,10 +123,7 @@ function CommentItem({ comment, repliesLimit, onShowAll, onChange, onDelete, onC
   function removeReply(replyId) {
     run(
       () => deleteReplyAPI(comment._id, replyId),
-      data => {
-        onChange(data);
-        onCountChange(n => n - 1);
-      },
+      data => onChange(data),
       'Не удалось удалить ответ'
     );
   }
