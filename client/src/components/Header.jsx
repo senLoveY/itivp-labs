@@ -1,4 +1,6 @@
-function Header({ email, isAdmin, page, onChangePage, onLogout }) {
+import { SearchIcon } from './Icons';
+
+function Header({ email, isAdmin, page, search, onChangePage, onSearchChange, onLogout }) {
   const pages = [
     { id: 'feed', title: 'Лента' },
     { id: 'mine', title: 'Мои посты' },
@@ -23,7 +25,23 @@ function Header({ email, isAdmin, page, onChangePage, onLogout }) {
             ))}
           </nav>
         </div>
-        <div>
+
+        <div className="header-search">
+          <SearchIcon />
+          <input
+            type="text"
+            placeholder="Поиск по твитам"
+            value={search}
+            onChange={e => onSearchChange(e.target.value)}
+          />
+          {search && (
+            <button className="search-clear" onClick={() => onSearchChange('')} title="Очистить">
+              ×
+            </button>
+          )}
+        </div>
+
+        <div className="header-right">
           <span className="hint">{email}</span>
           <button onClick={onLogout}>Выйти</button>
         </div>

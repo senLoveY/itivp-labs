@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { fetchTweetsAPI, createTweetAPI, updateTweetAPI, deleteTweetAPI, likeTweetAPI, getCurrentUser } from '../api';
+import { useState, useEffect, useRef } from 'react';
+import { fetchTweetsAPI, createTweetAPI, updateTweetAPI, deleteTweetAPI, likeTweetAPI, fetchCommentCountsAPI, getCurrentUser } from '../api';
 import { getCache, setCache, clearCache } from '../cache';
 import Loader from '../components/Loader';
 import TweetForm from './TweetForm';
@@ -11,7 +11,16 @@ function makeTempId() {
   return Date.now();
 }
 
-function TweetList({ author = '', title = '', showSort = false }) {
+function TweetList({
+  author = '',
+  title = '',
+  header = null,
+  showForm = true,
+  showSort = false,
+  search = '',
+  onSearchChange,
+  onAuthorClick
+}) {
   const user = getCurrentUser();
   const [tweets, setTweets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,8 +30,11 @@ function TweetList({ author = '', title = '', showSort = false }) {
 
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState('');
-  const [search, setSearch] = useState('');
   const [sort, setSort] = useState('new');
+
+  const [commentCounts, setCommentCounts] = useState({});
+  const requestedCounts = useRef(new Set());
+  const liking = useRef(new Set());
 
   function loadTweets(searchText, signal) {
     const cacheKey = `${author}|${sort}|${searchText}`;
@@ -106,6 +118,23 @@ function TweetList({ author = '', title = '', showSort = false }) {
     document.title = `Твиты (${tweets.length})`;
   }, [tweets.length]);
 
+  // счётчики комментариев запрашиваются одним запросом для новых твитов в ленте
+  useEffect(() => {
+    const ids = tweets
+      .filter(t => !t.pending && !requestedCounts.current.has(t.id))
+      .map(t => t.id);
+    if (ids.length === 0) return;
+
+    ids.forEach(id => requestedCounts.current.add(id));
+    fetchCommentCountsAPI(ids)
+      .then(res => setCommentCounts(prev => ({ ...prev, ...res.data })))
+      .catch(() => ids.forEach(id => requestedCounts.current.delete(id)));
+  }, [tweets]);
+
+  function changeCommentsCount(tweetId, update) {
+    setCommentCounts(prev => ({ ...prev, [tweetId]: Math.max(0, update(prev[tweetId] || 0)) }));
+  }
+
   async function addTweet(content, hashtags) {
     const data = { content, hashtags };
     const tempId = makeTempId();
@@ -156,6 +185,9 @@ function TweetList({ author = '', title = '', showSort = false }) {
   }
 
   async function likeTweet(id) {
+    if (liking.current.has(id)) return;
+    liking.current.add(id);
+
     const old = tweets.find(t => t.id === id);
     const liked = !old.liked;
 
@@ -168,6 +200,8 @@ function TweetList({ author = '', title = '', showSort = false }) {
     } catch (err) {
       setTweets(prev => prev.map(t => (t.id === id ? { ...t, liked: old.liked, likesCount: old.likesCount } : t)));
       setNotice('Не удалось поставить лайк: ' + errorText(err));
+    } finally {
+      liking.current.delete(id);
     }
   }
 
@@ -192,18 +226,11 @@ function TweetList({ author = '', title = '', showSort = false }) {
 
   return (
     <div className="feed">
-      {title && <h2 className="page-title">{title}</h2>}
+      {header}
 
-      <TweetForm sending={sending} onAdd={addTweet} />
-
-      <div className="search">
-        <div className="search-row">
-          <input
-            type="text"
-            placeholder="Поиск"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+      {(title || showSort) && (
+        <div className="list-toolbar">
+          {title && <h2 className="toolbar-title">{title}</h2>}
           {showSort && (
             <select value={sort} onChange={e => setSort(e.target.value)}>
               <option value="new">Сначала новые</option>
@@ -212,10 +239,15 @@ function TweetList({ author = '', title = '', showSort = false }) {
             </select>
           )}
         </div>
-        <p className="hint">
-          Загружено твитов: {tweets.length}
+      )}
+
+      {showForm && <TweetForm sending={sending} onAdd={addTweet} />}
+
+      {search && (
+        <p className="hint search-info">
+          Результаты по запросу «{search}»
         </p>
-      </div>
+      )}
 
       {notice && <p className="error message">{notice}</p>}
 
@@ -235,10 +267,13 @@ function TweetList({ author = '', title = '', showSort = false }) {
           key={tweet.id}
           tweet={tweet}
           canChange={canChange(tweet)}
+          commentsCount={commentCounts[tweet.id]}
           onLike={likeTweet}
           onDelete={deleteTweet}
           onSave={saveEdit}
-          onTagClick={setSearch}
+          onTagClick={onSearchChange}
+          onAuthorClick={onAuthorClick}
+          onCommentsCountChange={changeCommentsCount}
         />
       ))}
 

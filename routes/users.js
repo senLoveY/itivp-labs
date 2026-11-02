@@ -1,5 +1,6 @@
 const express = require('express');
 const { Tweet } = require('../models');
+const Comment = require('../mongo-models/Comment');
 const { verifyToken } = require('../middleware/auth');
 
 // данные текущего пользователя: профиль и статистика
@@ -32,13 +33,13 @@ router.get('/profile', verifyToken, async (req, res) => {
  * @swagger
  * /stats/me:
  *   get:
- *     summary: Like statistics for the current user's tweets
+ *     summary: Like and comment statistics for the current user's tweets
  *     tags: [Tweets]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Returns { totals, tweets, tags }. tweets are sorted by likes, tags contain posts, likes and average likes per post
+ *         description: Returns { totals, tweets, tags, discussed }. tweets are sorted by likes, tags contain posts, likes and average likes per post, discussed is top 5 tweets by comments from MongoDB (null if MongoDB is unavailable)
  *       401:
  *         description: Token not provided
  *       403:
@@ -68,6 +69,18 @@ router.get('/stats/me', verifyToken, async (req, res) => {
 
         const totalLikes = tweets.reduce((sum, t) => sum + (t.likesCount || 0), 0);
 
+        // посты берутся из PostgreSQL, а комментарии к ним считаются агрегацией в MongoDB
+        let discussed = null;
+        try {
+            const top = await Comment.topByTweets(tweets.map(t => t.id));
+            discussed = top.map(row => {
+                const tweet = tweets.find(t => t.id === row._id);
+                return { id: row._id, content: tweet.content, comments: row.comments, replies: row.replies, total: row.total };
+            });
+        } catch (error) {
+            console.error('MongoDB error while calculating comment statistics:', error.message);
+        }
+
         res.status(200).json({
             totals: {
                 posts: tweets.length,
@@ -76,7 +89,8 @@ router.get('/stats/me', verifyToken, async (req, res) => {
                 best: tweets[0] || null
             },
             tweets,
-            tags
+            tags,
+            discussed
         });
     } catch (error) {
         console.error(error);

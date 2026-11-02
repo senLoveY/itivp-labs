@@ -1,8 +1,11 @@
 import { useState } from 'react';
+import CommentSection from './CommentSection';
+import { HeartIcon, CommentIcon } from '../components/Icons';
 
-function TweetItem({ tweet, canChange, onLike, onDelete, onSave, onTagClick }) {
+function TweetItem({ tweet, canChange, commentsCount, onLike, onDelete, onSave, onTagClick, onAuthorClick, onCommentsCountChange }) {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState('');
+  const [showComments, setShowComments] = useState(false);
 
   function startEdit() {
     setEditText(tweet.content);
@@ -17,11 +20,13 @@ function TweetItem({ tweet, canChange, onLike, onDelete, onSave, onTagClick }) {
 
   return (
     <div className="tweet">
-      <div className="avatar">{tweet.author?.[0]?.toUpperCase()}</div>
+      <div className="avatar author-link" onClick={() => onAuthorClick(tweet.author)}>
+        {tweet.author?.[0]?.toUpperCase()}
+      </div>
 
       <div className="tweet-body">
         <div className="tweet-top">
-          <b>{tweet.author}</b>
+          <b className="author-link" onClick={() => onAuthorClick(tweet.author)}>{tweet.author}</b>
           <span className="hint">
             {tweet.pending ? 'отправляется...' : new Date(tweet.createdAt).toLocaleString()}
           </span>
@@ -58,7 +63,17 @@ function TweetItem({ tweet, canChange, onLike, onDelete, onSave, onTagClick }) {
             onClick={() => onLike(tweet.id)}
             disabled={tweet.pending}
           >
-            {tweet.liked ? '♥' : '♡'} {tweet.likesCount}
+            <HeartIcon />
+            {tweet.likesCount}
+          </button>
+          <button
+            className={showComments ? 'comments-btn open' : 'comments-btn'}
+            onClick={() => setShowComments(!showComments)}
+            disabled={tweet.pending}
+            title="Комментарии"
+          >
+            <CommentIcon />
+            {commentsCount > 0 && commentsCount}
           </button>
           {canChange && (
             <>
@@ -67,6 +82,14 @@ function TweetItem({ tweet, canChange, onLike, onDelete, onSave, onTagClick }) {
             </>
           )}
         </div>
+
+        {showComments && (
+          <CommentSection
+            tweetId={tweet.id}
+            onCountChange={update => onCommentsCountChange(tweet.id, update)}
+            onAuthorClick={onAuthorClick}
+          />
+        )}
       </div>
     </div>
   );
