@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Header from './components/Header';
 import LoginForm from './auth/LoginForm';
 import TweetList from './feed/TweetList';
 import AdminPanel from './admin/AdminPanel';
 import StatsPage from './stats/StatsPage';
-import { getCurrentUser } from './api';
+import { getCurrentUser, setOnTokenExpired } from './api';
 import { clearCache } from './cache';
 import './App.css';
 
@@ -19,6 +19,10 @@ function App() {
     setPage('feed');
     setToken(null);
   }
+
+  useEffect(() => {
+    setOnTokenExpired(logout);
+  });
 
   if (!token) {
     return <LoginForm onLogin={setToken} />;

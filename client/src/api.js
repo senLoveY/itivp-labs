@@ -12,6 +12,25 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+let handleTokenExpired = () => {};
+
+export function setOnTokenExpired(callback) {
+  handleTokenExpired = callback;
+}
+
+// токен истёк или недействителен — выходим из аккаунта
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error.response?.status;
+    const message = error.response?.data?.error;
+    if (error.config?.headers?.Authorization && (status === 401 || message === 'Invalid or expired token.')) {
+      handleTokenExpired();
+    }
+    return Promise.reject(error);
+  }
+);
+
 // данные пользователя из JWT-токена: { id, email, role }
 export function getCurrentUser() {
   const token = localStorage.getItem('token');
