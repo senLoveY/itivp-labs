@@ -18,6 +18,10 @@ export function setOnTokenExpired(callback) {
   handleTokenExpired = callback;
 }
 
+export function tokenExpired() {
+  handleTokenExpired();
+}
+
 // токен истёк или недействителен — выходим из аккаунта
 api.interceptors.response.use(
   (response) => response,

@@ -5,8 +5,11 @@ import TweetList from './feed/TweetList';
 import AdminPanel from './admin/AdminPanel';
 import StatsPage from './stats/StatsPage';
 import UserPage from './profile/UserPage';
-import { getCurrentUser, setOnTokenExpired } from './api';
+import Toasts from './components/Toasts';
+import { getCurrentUser, setOnTokenExpired, tokenExpired } from './api';
 import { clearCache } from './cache';
+import { socket, connectSocket, disconnectSocket } from './socket';
+import { OnlineContext } from './online';
 import './App.css';
 
 function App() {
@@ -14,6 +17,8 @@ function App() {
   const [page, setPage] = useState('feed');
   const [profileEmail, setProfileEmail] = useState('');
   const [search, setSearch] = useState('');
+  const [online, setOnline] = useState(new Set());
+  const [toasts, setToasts] = useState([]);
 
   function logout() {
     localStorage.removeItem('token');
@@ -36,6 +41,55 @@ function App() {
     setOnTokenExpired(logout);
   });
 
+  // сокет открыт, пока пользователь авторизован
+  useEffect(() => {
+    if (!token) return;
+
+    function showToast(text) {
+      const id = Date.now() + Math.random();
+      setToasts(prev => [...prev, { id, text }]);
+      setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
+    }
+
+    function onList(list) {
+      setOnline(new Set(list));
+    }
+
+    function onUserOnline(email) {
+      setOnline(prev => new Set(prev).add(email));
+      showToast(`${email} в сети`);
+    }
+
+    function onUserOffline(email) {
+      setOnline(prev => {
+        const next = new Set(prev);
+        next.delete(email);
+        return next;
+      });
+      showToast(`${email} вышел`);
+    }
+
+    // сервер отклонил токен — выходим, как при ответе REST
+    function onConnectError(err) {
+      if (err.message === 'Invalid or expired token.') tokenExpired();
+    }
+
+    socket.on('users:online', onList);
+    socket.on('user:online', onUserOnline);
+    socket.on('user:offline', onUserOffline);
+    socket.on('connect_error', onConnectError);
+    connectSocket();
+
+    return () => {
+      socket.off('users:online', onList);
+      socket.off('user:online', onUserOnline);
+      socket.off('user:offline', onUserOffline);
+      socket.off('connect_error', onConnectError);
+      disconnectSocket();
+      setOnline(new Set());
+    };
+  }, [token]);
+
   // своя страница — это «Мои посты», чужая — отдельная страница пользователя
   function openProfile(email) {
     if (email === localStorage.getItem('email')) {
@@ -54,7 +108,7 @@ function App() {
   const isAdmin = getCurrentUser()?.role === 'admin';
 
   return (
-    <div>
+    <OnlineContext.Provider value={online}>
       <Header
         email={localStorage.getItem('email')}
         isAdmin={isAdmin}
@@ -62,6 +116,7 @@ function App() {
         search={search}
         onChangePage={setPage}
         onSearchChange={changeSearch}
+        onlineCount={online.size}
         onLogout={logout}
       />
       {page === 'feed' && (
@@ -89,7 +144,8 @@ function App() {
       )}
       {page === 'stats' && <StatsPage />}
       {page === 'admin' && isAdmin && <AdminPanel />}
-    </div>
+      <Toasts toasts={toasts} />
+    </OnlineContext.Provider>
   );
 }
 

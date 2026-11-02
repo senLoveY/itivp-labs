@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import CommentSection from './CommentSection';
 import { HeartIcon, CommentIcon } from '../components/Icons';
+import { OnlineContext } from '../online';
 
 function TweetItem({ tweet, canChange, commentsCount, onLike, onDelete, onSave, onTagClick, onAuthorClick, onCommentsCountChange }) {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState('');
   const [showComments, setShowComments] = useState(false);
+  const online = useContext(OnlineContext);
 
   function startEdit() {
     setEditText(tweet.content);
@@ -22,6 +24,7 @@ function TweetItem({ tweet, canChange, commentsCount, onLike, onDelete, onSave, 
     <div className="tweet">
       <div className="avatar author-link" onClick={() => onAuthorClick(tweet.author)}>
         {tweet.author?.[0]?.toUpperCase()}
+        {online.has(tweet.author) && <span className="online-dot" title="В сети" />}
       </div>
 
       <div className="tweet-body">

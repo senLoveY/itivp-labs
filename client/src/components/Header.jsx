@@ -1,6 +1,6 @@
 import { SearchIcon } from './Icons';
 
-function Header({ email, isAdmin, page, search, onChangePage, onSearchChange, onLogout }) {
+function Header({ email, isAdmin, page, search, onlineCount, onChangePage, onSearchChange, onLogout }) {
   const pages = [
     { id: 'feed', title: 'Лента' },
     { id: 'mine', title: 'Мои посты' },
@@ -42,6 +42,10 @@ function Header({ email, isAdmin, page, search, onChangePage, onSearchChange, on
         </div>
 
         <div className="header-right">
+          <span className="hint online-count">
+            <span className="online-dot-inline" />
+            Онлайн: {onlineCount}
+          </span>
           <span className="hint">{email}</span>
           <button onClick={onLogout}>Выйти</button>
         </div>
