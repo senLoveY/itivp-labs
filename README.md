@@ -65,6 +65,7 @@ npm run dev
 | DELETE | `/comments/:id` | удалить, в ответе возвращается удалённый документ |
 | PATCH | `/comments/:id/like` | поставить / снять лайк |
 | POST | `/comments/:id/replies` | добавить ответ (`$push`) |
+| PUT | `/comments/:id/replies/:replyId` | изменить текст ответа (`$set` элемента массива) |
 | PATCH | `/comments/:id/replies/:replyId/like` | лайк ответа (`$inc` элемента массива) |
 | DELETE | `/comments/:id/replies/:replyId` | удалить ответ (`$pull`) |
 | GET | `/comments/stats` | топ твитов по комментариям (aggregation pipeline) |

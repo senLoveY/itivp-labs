@@ -1,5 +1,14 @@
 import { useState } from 'react';
-import { updateCommentAPI, deleteCommentAPI, likeCommentAPI, addReplyAPI, likeReplyAPI, deleteReplyAPI, getCurrentUser } from '../api';
+import {
+  updateCommentAPI,
+  deleteCommentAPI,
+  likeCommentAPI,
+  addReplyAPI,
+  updateReplyAPI,
+  likeReplyAPI,
+  deleteReplyAPI,
+  getCurrentUser
+} from '../api';
 import { HeartIcon } from '../components/Icons';
 
 function CommentItem({ comment, onChange, onDelete, onCountChange, onAuthorClick }) {
@@ -9,6 +18,8 @@ function CommentItem({ comment, onChange, onDelete, onCountChange, onAuthorClick
   const [replying, setReplying] = useState(false);
   const [replyTo, setReplyTo] = useState('');
   const [replyText, setReplyText] = useState('');
+  const [editingReplyId, setEditingReplyId] = useState(null);
+  const [editReplyText, setEditReplyText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -86,6 +97,23 @@ function CommentItem({ comment, onChange, onDelete, onCountChange, onAuthorClick
     );
   }
 
+  function startEditReply(reply) {
+    setEditReplyText(reply.text);
+    setEditingReplyId(reply._id);
+  }
+
+  function saveEditReply() {
+    if (!editReplyText.trim()) return;
+    run(
+      () => updateReplyAPI(comment._id, editingReplyId, editReplyText.trim()),
+      data => {
+        onChange(data);
+        setEditingReplyId(null);
+      },
+      'Не удалось изменить ответ'
+    );
+  }
+
   function likeReply(replyId) {
     run(() => likeReplyAPI(comment._id, replyId), onChange, 'Не удалось поставить лайк');
   }
@@ -149,13 +177,36 @@ function CommentItem({ comment, onChange, onDelete, onCountChange, onAuthorClick
         <div className="replies">
           {comment.replies.map(reply => {
             const liked = reply.likedBy?.includes(user?.email);
+            const canEditReply = reply.author === user?.email || user?.role === 'admin';
             const canDelete = reply.author === user?.email || canChange;
+
+            if (reply._id === editingReplyId) {
+              return (
+                <div key={reply._id} className="reply">
+                  <div className="comment-top">
+                    <b>{reply.author}</b>
+                  </div>
+                  <textarea
+                    value={editReplyText}
+                    onChange={e => setEditReplyText(e.target.value)}
+                    rows={2}
+                    maxLength={280}
+                    autoFocus
+                  />
+                  <button className="btn-main" onClick={saveEditReply} disabled={busy}>Сохранить</button>
+                  <button onClick={() => setEditingReplyId(null)}>Отмена</button>
+                </div>
+              );
+            }
 
             return (
               <div key={reply._id} className="reply">
                 <div className="comment-top">
                   <b className="author-link" onClick={() => onAuthorClick(reply.author)}>{reply.author}</b>
-                  <span className="hint">{new Date(reply.createdAt).toLocaleString()}</span>
+                  <span className="hint">
+                    {new Date(reply.createdAt).toLocaleString()}
+                    {reply.editedAt && ' · изменено'}
+                  </span>
                 </div>
                 <p className="comment-text">
                   {reply.replyTo && (
@@ -175,6 +226,9 @@ function CommentItem({ comment, onChange, onDelete, onCountChange, onAuthorClick
                     {reply.likes}
                   </button>
                   <button onClick={() => toggleReply(reply.author)} disabled={busy}>Ответить</button>
+                  {canEditReply && (
+                    <button onClick={() => startEditReply(reply)} disabled={busy}>Изменить</button>
+                  )}
                   {canDelete && (
                     <button onClick={() => removeReply(reply._id)} disabled={busy}>Удалить</button>
                   )}

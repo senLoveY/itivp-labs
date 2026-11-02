@@ -516,6 +516,78 @@ router.patch('/:id/replies/:replyId/like', verifyToken, isNotBanned, async (req,
 /**
  * @swagger
  * /comments/{id}/replies/{replyId}:
+ *   put:
+ *     summary: Update reply text ($set of an element inside array)
+ *     tags: [Comments (MongoDB)]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: replyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - text
+ *             properties:
+ *               text:
+ *                 type: string
+ *                 example: I agree, thanks!
+ *     responses:
+ *       200:
+ *         description: Comment with updated reply
+ *       400:
+ *         description: Validation error
+ *       403:
+ *         description: Only reply author or admin can update
+ *       404:
+ *         description: Comment or reply not found
+ */
+router.put('/:id/replies/:replyId', verifyToken, isNotBanned, async (req, res) => {
+    try {
+        const text = (req.body.text || '').trim();
+
+        if (!text) {
+            return res.status(400).json({ error: "The 'text' field is mandatory for update." });
+        }
+
+        const comment = await Comment.findById(req.params.id);
+        const reply = comment && comment.replies.id(req.params.replyId);
+
+        if (!reply) {
+            return res.status(404).json({ error: "Comment or reply not found" });
+        }
+
+        if (reply.author !== req.user.email && req.user.role !== 'admin') {
+            return res.status(403).json({ error: "Access denied. You can only update your own replies." });
+        }
+
+        const updated = await Comment.findOneAndUpdate(
+            { _id: req.params.id, 'replies._id': req.params.replyId },
+            { $set: { 'replies.$.text': text, 'replies.$.editedAt': new Date() } },
+            { returnDocument: 'after', runValidators: true }
+        );
+
+        res.status(200).json(updated);
+    } catch (error) {
+        handleError(res, error, "Database error while updating reply");
+    }
+});
+
+/**
+ * @swagger
+ * /comments/{id}/replies/{replyId}:
  *   delete:
  *     summary: Delete reply ($pull from nested array)
  *     tags: [Comments (MongoDB)]

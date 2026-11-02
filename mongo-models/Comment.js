@@ -5,7 +5,8 @@ const replySchema = new mongoose.Schema({
     replyTo: { type: String, trim: true },
     text: { type: String, required: true, trim: true, maxlength: 280 },
     likes: { type: Number, default: 0, min: 0 },
-    likedBy: [String]
+    likedBy: [String],
+    editedAt: Date
 }, { timestamps: true });
 
 const editSchema = new mongoose.Schema({
