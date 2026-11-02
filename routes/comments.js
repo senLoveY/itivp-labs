@@ -7,8 +7,10 @@ const { getIO } = require('../socket');
 
 const router = express.Router();
 
-// после изменения комментариев рассылаем готовое число, а не +1:
-// автор комментария уже обновил свой счётчик сам
+const emitToTweet = (tweetId, event, data) => {
+    getIO().to(`tweet:${tweetId}`).emit(event, data);
+};
+
 const emitCommentsCount = async (tweetId) => {
     try {
         const [row] = await Comment.aggregate([
@@ -255,6 +257,7 @@ router.post('/', verifyToken, isNotBanned, async (req, res) => {
         });
 
         await emitCommentsCount(tweetId);
+        emitToTweet(comment.tweetId, 'comment:upsert', comment);
         res.status(201).json(comment);
     } catch (error) {
         handleError(res, error, "Database error while creating comment");
@@ -321,6 +324,7 @@ router.put('/:id', verifyToken, isNotBanned, async (req, res) => {
 
         const updated = await Comment.findByIdAndUpdate(req.params.id, update, { returnDocument: 'after', runValidators: true });
 
+        emitToTweet(updated.tweetId, 'comment:upsert', updated);
         res.status(200).json(updated);
     } catch (error) {
         handleError(res, error, "Database error while updating comment");
@@ -363,6 +367,7 @@ router.delete('/:id', verifyToken, isNotBanned, async (req, res) => {
         const deleted = await Comment.findByIdAndDelete(req.params.id);
 
         await emitCommentsCount(deleted.tweetId);
+        emitToTweet(deleted.tweetId, 'comment:delete', { id: deleted._id, tweetId: deleted.tweetId });
         res.status(200).json({ message: "Comment successfully deleted", deleted });
     } catch (error) {
         handleError(res, error, "Database error while deleting comment");
@@ -412,6 +417,7 @@ router.patch('/:id/like', verifyToken, isNotBanned, async (req, res) => {
             return res.status(404).json({ error: "Comment not found" });
         }
 
+        emitToTweet(comment.tweetId, 'comment:upsert', comment);
         res.status(200).json(comment);
     } catch (error) {
         handleError(res, error, "Database error while liking comment");
@@ -471,6 +477,7 @@ router.post('/:id/replies', verifyToken, isNotBanned, async (req, res) => {
         }
 
         await emitCommentsCount(comment.tweetId);
+        emitToTweet(comment.tweetId, 'comment:upsert', comment);
         res.status(201).json(comment);
     } catch (error) {
         handleError(res, error, "Database error while adding reply");
@@ -525,6 +532,7 @@ router.patch('/:id/replies/:replyId/like', verifyToken, isNotBanned, async (req,
             return res.status(404).json({ error: "Comment or reply not found" });
         }
 
+        emitToTweet(comment.tweetId, 'comment:upsert', comment);
         res.status(200).json(comment);
     } catch (error) {
         handleError(res, error, "Database error while liking reply");
@@ -597,6 +605,7 @@ router.put('/:id/replies/:replyId', verifyToken, isNotBanned, async (req, res) =
             { returnDocument: 'after', runValidators: true }
         );
 
+        emitToTweet(updated.tweetId, 'comment:upsert', updated);
         res.status(200).json(updated);
     } catch (error) {
         handleError(res, error, "Database error while updating reply");
@@ -650,6 +659,7 @@ router.delete('/:id/replies/:replyId', verifyToken, isNotBanned, async (req, res
         );
 
         await emitCommentsCount(updated.tweetId);
+        emitToTweet(updated.tweetId, 'comment:upsert', updated);
         res.status(200).json(updated);
     } catch (error) {
         handleError(res, error, "Database error while deleting reply");

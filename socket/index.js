@@ -33,6 +33,32 @@ const initSocket = (server) => {
         }
         socket.emit('users:online', [...online.keys()]);
 
+        socket.on('tweet:join', (tweetId, ack) => {
+            if (!Number.isInteger(tweetId)) {
+                return ack?.({ ok: false, error: "tweetId must be an integer." });
+            }
+            socket.join(`tweet:${tweetId}`);
+            ack?.({ ok: true });
+        });
+
+        socket.on('tweet:leave', (tweetId) => {
+            socket.leave(`tweet:${tweetId}`);
+        });
+
+        socket.on('comment:typing', ({ tweetId, typing } = {}) => {
+            const room = `tweet:${tweetId}`;
+            if (!socket.rooms.has(room)) return;
+            socket.to(room).emit('comment:typing', { tweetId, email, typing: Boolean(typing) });
+        });
+
+        socket.on('disconnecting', () => {
+            for (const room of socket.rooms) {
+                if (room.startsWith('tweet:')) {
+                    socket.to(room).emit('comment:typing', { tweetId: Number(room.slice(6)), email, typing: false });
+                }
+            }
+        });
+
         socket.on('disconnect', (reason) => {
             console.log(`Socket disconnected: ${email} (${socket.id}), ${reason}`);
 

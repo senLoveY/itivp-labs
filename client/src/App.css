@@ -717,3 +717,21 @@ b.author-link:hover,
 .fresh-btn:hover {
   background: #333;
 }
+
+.comment-form {
+  position: relative;
+}
+
+.typing {
+  position: absolute;
+  top: calc(100% + 1px);
+  left: 2px;
+  right: 0;
+  font-size: 12px;
+  line-height: 12px;
+  font-style: italic;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
