@@ -70,3 +70,6 @@ export const addReplyAPI = (id, text, replyTo) => api.post(`/comments/${id}/repl
 export const updateReplyAPI = (id, replyId, text) => api.put(`/comments/${id}/replies/${replyId}`, { text });
 export const likeReplyAPI = (id, replyId) => api.patch(`/comments/${id}/replies/${replyId}/like`);
 export const deleteReplyAPI = (id, replyId) => api.delete(`/comments/${id}/replies/${replyId}`);
+
+export const fetchNotificationsAPI = () => api.get('/notifications');
+export const readNotificationsAPI = () => api.patch('/notifications/read');

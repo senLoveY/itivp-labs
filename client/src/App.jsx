@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Header from './components/Header';
 import LoginForm from './auth/LoginForm';
 import TweetList from './feed/TweetList';
@@ -19,6 +19,12 @@ function App() {
   const [search, setSearch] = useState('');
   const [online, setOnline] = useState(new Set());
   const [toasts, setToasts] = useState([]);
+
+  const showToast = useCallback((text) => {
+    const id = Date.now() + Math.random();
+    setToasts(prev => [...prev, { id, text }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
+  }, []);
 
   function logout() {
     localStorage.removeItem('token');
@@ -44,12 +50,6 @@ function App() {
   // сокет открыт, пока пользователь авторизован
   useEffect(() => {
     if (!token) return;
-
-    function showToast(text) {
-      const id = Date.now() + Math.random();
-      setToasts(prev => [...prev, { id, text }]);
-      setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
-    }
 
     function onList(list) {
       setOnline(new Set(list));
@@ -88,7 +88,7 @@ function App() {
       disconnectSocket();
       setOnline(new Set());
     };
-  }, [token]);
+  }, [token, showToast]);
 
   // своя страница — это «Мои посты», чужая — отдельная страница пользователя
   function openProfile(email) {
@@ -118,6 +118,7 @@ function App() {
         onSearchChange={changeSearch}
         onlineCount={online.size}
         onLogout={logout}
+        onToast={showToast}
       />
       {page === 'feed' && (
         <TweetList key="feed" search={search} onSearchChange={changeSearch} onAuthorClick={openProfile} />

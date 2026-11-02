@@ -1,6 +1,7 @@
 import { SearchIcon } from './Icons';
+import NotificationBell from './NotificationBell';
 
-function Header({ email, isAdmin, page, search, onlineCount, onChangePage, onSearchChange, onLogout }) {
+function Header({ email, isAdmin, page, search, onlineCount, onChangePage, onSearchChange, onLogout, onToast }) {
   const pages = [
     { id: 'feed', title: 'Лента' },
     { id: 'mine', title: 'Мои посты' },
@@ -46,6 +47,7 @@ function Header({ email, isAdmin, page, search, onlineCount, onChangePage, onSea
             <span className="online-dot-inline" />
             Онлайн: {onlineCount}
           </span>
+          <NotificationBell onToast={onToast} />
           <span className="hint">{email}</span>
           <button onClick={onLogout}>Выйти</button>
         </div>

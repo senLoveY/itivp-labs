@@ -735,3 +735,80 @@ b.author-link:hover,
   text-overflow: ellipsis;
   pointer-events: none;
 }
+
+/* уведомления */
+.bell {
+  position: relative;
+  margin-right: 8px;
+}
+
+.bell-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  margin-right: 0;
+}
+
+.bell-btn .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.bell-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #e0245e;
+  color: #fff;
+  font-size: 10px;
+  font-weight: bold;
+  line-height: 16px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.bell-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  width: 320px;
+  max-height: 380px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  white-space: normal;
+}
+
+.bell-empty {
+  margin: 0;
+  padding: 16px;
+  text-align: center;
+}
+
+.bell-item {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 14px;
+  word-break: break-word;
+}
+
+.bell-item:last-child {
+  border-bottom: none;
+}
+
+.bell-item.unread {
+  background: #f3f8ff;
+}
+
+.bell-text {
+  margin: 2px 0;
+  color: #333;
+}

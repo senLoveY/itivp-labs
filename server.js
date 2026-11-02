@@ -12,6 +12,7 @@ const tweetRoutes = require('./routes/tweets');
 const adminRoutes = require('./routes/admin');
 const userRoutes = require('./routes/users');
 const commentRoutes = require('./routes/comments');
+const notificationRoutes = require('./routes/notifications');
 const connectMongo = require('./config/mongo');
 const { initSocket } = require('./socket');
 
@@ -29,6 +30,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 app.use('/auth', authRoutes);
 app.use('/tweets', tweetRoutes);
 app.use('/comments', commentRoutes);
+app.use('/notifications', notificationRoutes);
 app.use('/admin', verifyToken, isAdmin, adminRoutes);
 app.use('/', userRoutes);
 

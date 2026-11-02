@@ -4,6 +4,7 @@ const Comment = require('../mongo-models/Comment');
 const { Tweet } = require('../models');
 const { verifyToken, isNotBanned } = require('../middleware/auth');
 const { getIO } = require('../socket');
+const notify = require('../socket/notify');
 
 const router = express.Router();
 
@@ -258,6 +259,7 @@ router.post('/', verifyToken, isNotBanned, async (req, res) => {
 
         await emitCommentsCount(tweetId);
         emitToTweet(comment.tweetId, 'comment:upsert', comment);
+        await notify({ to: tweet.author, from: req.user.email, type: 'comment', tweetId, text });
         res.status(201).json(comment);
     } catch (error) {
         handleError(res, error, "Database error while creating comment");
@@ -478,6 +480,8 @@ router.post('/:id/replies', verifyToken, isNotBanned, async (req, res) => {
 
         await emitCommentsCount(comment.tweetId);
         emitToTweet(comment.tweetId, 'comment:upsert', comment);
+        // отвечают либо на конкретный ответ (replyTo), либо на сам комментарий
+        await notify({ to: replyTo || comment.author, from: req.user.email, type: 'reply', tweetId: comment.tweetId, text });
         res.status(201).json(comment);
     } catch (error) {
         handleError(res, error, "Database error while adding reply");

@@ -22,3 +22,12 @@ export function CommentIcon() {
     </svg>
   );
 }
+
+export function BellIcon() {
+  return (
+    <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M18 16V11a6 6 0 0 0-12 0v5l-2 2h16z" />
+      <path d="M10 20.5a2 2 0 0 0 4 0" />
+    </svg>
+  );
+}

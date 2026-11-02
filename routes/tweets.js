@@ -4,6 +4,7 @@ const { Tweet, Like, sequelize } = require('../models');
 const Comment = require('../mongo-models/Comment');
 const { verifyToken, isNotBanned, getUserFromToken } = require('../middleware/auth');
 const { getIO } = require('../socket');
+const notify = require('../socket/notify');
 
 const router = express.Router();
 
@@ -373,6 +374,9 @@ router.post('/:id/like', verifyToken, isNotBanned, async (req, res) => {
 
         // liked у каждого свой, поэтому всем рассылается только счётчик
         getIO().emit('tweet:like', { id: result.id, likesCount: result.likesCount });
+        if (result.liked) {
+            await notify({ to: result.author, from: req.user.email, type: 'like', tweetId: result.id, text: result.content });
+        }
         res.status(200).json(result);
     } catch (error) {
         console.error(error);
