@@ -27,7 +27,6 @@ const initSocket = (server) => {
         const { email } = socket.data.user;
         console.log(`Socket connected: ${email} (${socket.id})`);
 
-        // личная комната: в ней все вкладки пользователя, сюда идут уведомления
         socket.join(`user:${email}`);
 
         const count = online.get(email) || 0;
