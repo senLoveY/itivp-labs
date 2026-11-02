@@ -347,24 +347,29 @@ router.delete('/:id', verifyToken, isNotBanned, async (req, res) => {
  */
 router.post('/:id/like', verifyToken, isNotBanned, async (req, res) => {
     try {
-        const tweet = await Tweet.findByPk(req.params.id);
+        // строка твита блокируется (SELECT ... FOR UPDATE), поэтому лайки
+        // одного твита обрабатываются по очереди и счётчик не сбивается
+        const result = await sequelize.transaction(async (transaction) => {
+            const tweet = await Tweet.findByPk(req.params.id, { transaction, lock: transaction.LOCK.UPDATE });
+            if (!tweet) return null;
 
-        if (!tweet) {
+            const where = { userId: req.user.id, tweetId: tweet.id };
+            const removed = await Like.destroy({ where, transaction });
+            if (!removed) {
+                await Like.create(where, { transaction });
+            }
+
+            const likesCount = await Like.count({ where: { tweetId: tweet.id }, transaction });
+            await tweet.update({ likesCount }, { transaction, silent: true });
+
+            return { ...tweet.toJSON(), liked: !removed };
+        });
+
+        if (!result) {
             return res.status(404).json({ error: "Tweet not found" });
         }
 
-        const existing = await Like.findOne({ where: { userId: req.user.id, tweetId: tweet.id } });
-
-        if (existing) {
-            await existing.destroy();
-            await tweet.decrement('likesCount');
-        } else {
-            await Like.create({ userId: req.user.id, tweetId: tweet.id });
-            await tweet.increment('likesCount');
-        }
-
-        await tweet.reload();
-        res.status(200).json({ ...tweet.toJSON(), liked: !existing });
+        res.status(200).json(result);
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Database error while liking tweet" });

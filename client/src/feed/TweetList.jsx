@@ -26,6 +26,7 @@ function TweetList({ author = '', title = '', header = null, showForm = true, sh
 
   const [commentCounts, setCommentCounts] = useState({});
   const requestedCounts = useRef(new Set());
+  const liking = useRef(new Set());
 
   function loadTweets(searchText, signal) {
     const cacheKey = `${author}|${sort}|${searchText}`;
@@ -176,6 +177,9 @@ function TweetList({ author = '', title = '', header = null, showForm = true, sh
   }
 
   async function likeTweet(id) {
+    if (liking.current.has(id)) return;
+    liking.current.add(id);
+
     const old = tweets.find(t => t.id === id);
     const liked = !old.liked;
 
@@ -188,6 +192,8 @@ function TweetList({ author = '', title = '', header = null, showForm = true, sh
     } catch (err) {
       setTweets(prev => prev.map(t => (t.id === id ? { ...t, liked: old.liked, likesCount: old.likesCount } : t)));
       setNotice('Не удалось поставить лайк: ' + errorText(err));
+    } finally {
+      liking.current.delete(id);
     }
   }
 
