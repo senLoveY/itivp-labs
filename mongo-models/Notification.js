@@ -9,10 +9,8 @@ const notificationSchema = new mongoose.Schema({
     read: { type: Boolean, default: false }
 }, { timestamps: true });
 
-// уведомления всегда выбираются по получателю, новые сверху
 notificationSchema.index({ to: 1, createdAt: -1 });
 
-// TTL-индекс: уведомления старше 30 дней MongoDB удаляет сама
 notificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });
 
 module.exports = mongoose.model('Notification', notificationSchema);
