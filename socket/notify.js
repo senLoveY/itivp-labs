@@ -1,7 +1,6 @@
 const Notification = require('../mongo-models/Notification');
 const { getIO } = require('./index');
 
-// уведомление сохраняется в MongoDB и сразу уходит в личную комнату получателя
 const notify = async ({ to, from, type, tweetId, text = '' }) => {
     if (!to || to === from) return;
 
