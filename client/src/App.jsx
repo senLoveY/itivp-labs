@@ -40,7 +40,6 @@ function App() {
     setToken(null);
   }
 
-  // поиск работает по ленте и страницам с постами, с остальных страниц переходим в ленту
   function changeSearch(value) {
     setSearch(value);
     if (!['feed', 'mine', 'user'].includes(page)) {
@@ -127,7 +126,6 @@ function App() {
 
   const closePost = useCallback(() => setPage(backPage), [backPage]);
 
-  // своя страница — это «Мои посты», чужая — отдельная страница пользователя
   function openProfile(email) {
     if (email === localStorage.getItem('email')) {
       setPage('mine');
