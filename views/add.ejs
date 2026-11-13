@@ -1,7 +1,10 @@
 <h2><%= title %></h2>
+<% if (error) { %>
+    <p role="alert"><%= error %></p>
+<% } %>
 <form action="/add" method="POST" class="tweet-form">
     <label>Имя автора:</label>
-    <input type="text" name="author" value="<%= user.name %>" 
+    <input type="text" name="author" value="<%= form.author %>"
            minlength="<%= limits.author.minLength %>" 
            maxlength="<%= limits.author.maxLength %>" required>
 
@@ -10,7 +13,7 @@
     <label>Текст поста:</label>
     <textarea name="content" rows="4" 
               minlength="<%= limits.content.minLength %>" 
-              maxlength="<%= limits.content.maxLength %>" required></textarea>
+              maxlength="<%= limits.content.maxLength %>" required><%= form.content %></textarea>
 
     <br><br>
 

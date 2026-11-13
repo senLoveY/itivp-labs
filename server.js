@@ -24,17 +24,21 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('layout', 'layout');
 app.use(express.static(path.join(__dirname, 'public')));
 
+const logRequest = (req) => RequestLog.create({
+    method: req.method,
+    url: req.originalUrl
+});
+
 const dbLogger = async (req, res, next) => {
+    // POST /add writes its required log after validating the form.
+    if (req.method === 'POST' && /^\/add\/?$/i.test(req.path)) return next();
+
     try {
-        await RequestLog.create({
-            method: req.method,
-            url: req.originalUrl
-        });
-        next();
+        await logRequest(req);
     } catch (error) {
-        // Если БД отвалилась - пробрасываем в страницу 500
-        next(new Error(`Сбой записи лога в БД: ${error.message}`));
+        console.error('Сбой записи лога в БД:', error.message);
     }
+    next();
 };
 app.use(dbLogger);
 
@@ -520,18 +524,25 @@ app.get('/item/:id', fakeWebAuth, async (req, res, next) => {
     }
 });
 
+const renderAddForm = (res, user, form = { author: user.name, content: '' }, error = null) =>
+    res.render('add', { title: 'Добавить твит', user, limits, form, error });
+
 app.get('/add', fakeWebAuth, (req, res) => {
     if (!req.fakeUser.isAuthenticated) {
         return res.send('<h3 style="text-align:center; margin-top:50px;">Доступ запрещен. <a href="/?auth=1">Войти как Администратор</a></h3>');
     }
-    res.render('add', { title: 'Добавить твит', user: req.fakeUser, limits: limits }); 
+    renderAddForm(res, req.fakeUser);
 });
 
 app.post('/add', fakeWebAuth, async (req, res, next) => {
     try {
 
-        const author = req.body.author ? req.body.author.trim() : '';
-        const content = req.body.content ? req.body.content.trim() : '';
+        const form = {
+            author: req.body.author || '',
+            content: req.body.content || ''
+        };
+        const author = form.author.trim();
+        const content = form.content.trim();
 
         if (author.length < limits.author.minLength || author.length > limits.author.maxLength) {
             throw new Error(`Имя автора не может состоять только из пробелов и должно быть от ${limits.author.minLength} до ${limits.author.maxLength} символов.`);
@@ -543,6 +554,17 @@ app.post('/add', fakeWebAuth, async (req, res, next) => {
 
         if (content.toLowerCase() === 'ошибка') {
             throw new Error("Имитация непредвиденного критического сбоя сервера!");
+        }
+
+        try {
+            await logRequest(req);
+        } catch (error) {
+            console.error('Не удалось записать запрос на добавление поста:', error.message);
+            const message = 'Не удалось добавить пост: журнал запросов временно недоступен.';
+            if (req.accepts(['html', 'json']) === 'json') {
+                return res.status(503).json({ error: message });
+            }
+            return renderAddForm(res.status(503), req.fakeUser, form, message);
         }
 
         await Tweet.create({ author, content, hashtags: [] });
