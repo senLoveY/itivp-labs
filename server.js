@@ -15,6 +15,19 @@ const limits = require('./limits.json');
 const app = express();
 const port = 3000;
 
+const fakeWebAuth = (req, res, next) => {
+    const hasDemoCookie = (req.headers.cookie || '').split(';').some(cookie => cookie.trim() === 'demoWebAuth=1');
+    const isAuthenticated = req.query.auth === '1' || (req.query.auth !== '0' && hasDemoCookie);
+    const options = { httpOnly: true, sameSite: 'lax', path: '/' };
+
+    if (req.query.auth === '0') res.clearCookie('demoWebAuth', options);
+    if (req.query.auth === '1') res.cookie('demoWebAuth', '1', options);
+
+    req.fakeUser = { name: isAuthenticated ? 'Admin' : 'Guest', isAuthenticated };
+    next();
+};
+
+app.use(fakeWebAuth);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -41,15 +54,6 @@ const dbLogger = async (req, res, next) => {
     next();
 };
 app.use(dbLogger);
-
-const fakeWebAuth = (req, res, next) => {
-    if (req.query.auth === '1') {
-        req.fakeUser = { name: 'Admin', isAuthenticated: true };
-    } else {
-        req.fakeUser = { name: 'Guest', isAuthenticated: false };
-    }
-    next();
-};
 
 const swaggerOptions = {
     swaggerDefinition: {
@@ -505,7 +509,7 @@ app.delete('/tweets/:id', verifyToken, isNotBanned, async (req, res) => {
     }
 });
 
-app.get('/', fakeWebAuth, async (req, res, next) => {
+app.get('/', async (req, res, next) => {
     try {
         const tweets = await Tweet.findAll({ order: [['createdAt', 'DESC']] });
         res.render('index', { title: 'Лента твитов', tweets, user: req.fakeUser });
@@ -514,7 +518,7 @@ app.get('/', fakeWebAuth, async (req, res, next) => {
     }
 });
 
-app.get('/item/:id', fakeWebAuth, async (req, res, next) => {
+app.get('/item/:id', async (req, res, next) => {
     try {
         const tweet = await Tweet.findByPk(req.params.id);
         if (!tweet) return next();
@@ -527,14 +531,14 @@ app.get('/item/:id', fakeWebAuth, async (req, res, next) => {
 const renderAddForm = (res, user, form = { author: user.name, content: '' }, error = null) =>
     res.render('add', { title: 'Добавить твит', user, limits, form, error });
 
-app.get('/add', fakeWebAuth, (req, res) => {
+app.get('/add', (req, res) => {
     if (!req.fakeUser.isAuthenticated) {
         return res.send('<h3 style="text-align:center; margin-top:50px;">Доступ запрещен. <a href="/?auth=1">Войти как Администратор</a></h3>');
     }
     renderAddForm(res, req.fakeUser);
 });
 
-app.post('/add', fakeWebAuth, async (req, res, next) => {
+app.post('/add', async (req, res, next) => {
     try {
 
         const form = {
@@ -575,13 +579,13 @@ app.post('/add', fakeWebAuth, async (req, res, next) => {
     }
 });
 
-app.get('/500-demo', fakeWebAuth, (req, res, next) => {
+app.get('/500-demo', (req, res, next) => {
     next(new Error("Демонстрация работы middleware для перехвата 500 ошибки!"));
 });
 
 app.use((req, res) => {
     if (req.accepts('html')) {
-        res.status(404).render('404', { title: 'Страница не найдена', user: { name: 'Guest', isAuthenticated: false } });
+        res.status(404).render('404', { title: 'Страница не найдена', user: req.fakeUser });
     } else {
         res.status(404).json({ error: "Route not found" });
     }

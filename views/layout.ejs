@@ -12,7 +12,7 @@
             <a href="/<%= user.isAuthenticated ? '?auth=1' : '' %>">Лента</a>
             <% if (user.isAuthenticated) { %>
                 <a href="/add?auth=1">Написать твит</a>
-                <span style="margin-left: 20px;">Привет, <%= user.name %>! <a href="/">Выйти</a></span>
+                <span style="margin-left: 20px;">Привет, <%= user.name %>! <a href="/?auth=0">Выйти</a></span>
             <% } else { %>
                 <a href="/?auth=1">Войти (auth=1)</a>
             <% } %>
