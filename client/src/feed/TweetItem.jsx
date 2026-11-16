@@ -15,11 +15,39 @@ function TweetItem({ tweet, full = false, canChange, commentsCount, onLike, onDe
   const [showComments, setShowComments] = useState(false);
   const online = useContext(OnlineContext);
   const imageDialog = useRef(null);
+  const galleryDrag = useRef(null);
+  const [draggingGallery, setDraggingGallery] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const images = Array.isArray(tweet.image) ? tweet.image : tweet.image ? [tweet.image] : [];
 
   function stepImage(direction) {
     setSelectedImage(index => (index + direction + images.length) % images.length);
+  }
+
+  function startGalleryDrag(e) {
+    const row = e.currentTarget;
+    galleryDrag.current = null;
+    if (e.pointerType !== 'mouse' || e.button !== 0 || row.scrollWidth <= row.clientWidth) return;
+    galleryDrag.current = { id: e.pointerId, startX: e.clientX, left: row.scrollLeft, moved: false };
+  }
+
+  function moveGallery(e) {
+    const drag = galleryDrag.current;
+    if (drag?.id !== e.pointerId || !(e.buttons & 1)) return;
+    const distance = e.clientX - drag.startX;
+    if (!drag.moved && Math.abs(distance) < 5) return;
+    const row = e.currentTarget;
+    if (!drag.moved) {
+      drag.moved = true;
+      row.setPointerCapture(e.pointerId);
+      setDraggingGallery(true);
+    }
+    row.scrollLeft = drag.left - distance;
+  }
+
+  function stopGalleryDrag(e) {
+    if (galleryDrag.current?.id !== e.pointerId) return;
+    setDraggingGallery(false);
   }
 
   function startEdit() {
@@ -73,16 +101,25 @@ function TweetItem({ tweet, full = false, canChange, commentsCount, onLike, onDe
         {images.length > 0 && (
           <>
             <div className="feed-media">
-              <div className={`feed-media-layout${images.length === 1 ? ' feed-media-1' : ''}`}>
+              <div className={`feed-media-layout${images.length === 1 ? ' feed-media-1' : ''}${draggingGallery ? ' is-dragging' : ''}`}
+                onPointerDown={startGalleryDrag} onPointerMove={moveGallery}
+                onPointerUp={stopGalleryDrag} onPointerCancel={stopGalleryDrag}
+                onLostPointerCapture={stopGalleryDrag}
+                onClickCapture={e => {
+                  if (e.detail > 0 && galleryDrag.current?.moved) {
+                    e.stopPropagation();
+                    galleryDrag.current = null;
+                  }
+                }}>
                 {images.map((image, index) => (
                   <button key={image.key} type="button" className="post-image-trigger"
-                    style={{ '--media-ratio': Math.max(0.55, image.width / image.height || 1) }}
+                    style={{ '--media-ratio': image.width / image.height || 1 }}
                     aria-label={`Увеличить изображение ${index + 1}`} onClick={() => {
                       setSelectedImage(index);
                       imageDialog.current.showModal();
                     }}>
                     <img className="post-image" src={tweetImageURL(tweet.id, index)} alt={`Изображение ${index + 1} к публикации`}
-                      loading="lazy" width={image.width} height={image.height} />
+                      draggable={false} loading="lazy" width={image.width} height={image.height} />
                   </button>
                 ))}
               </div>

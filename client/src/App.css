@@ -521,31 +521,45 @@ a {
 }
 
 .feed-media-layout {
-  --media-height: clamp(132px, 64cqw, 300px);
+  --media-height: clamp(124px, 56cqw, 260px);
   display: flex;
   gap: 6px;
   overflow-x: auto;
-  padding-bottom: 4px;
   scroll-snap-type: x proximity;
-  scrollbar-width: thin;
+  scrollbar-width: none;
   overscroll-behavior-x: contain;
+  user-select: none;
+}
+
+.feed-media-layout::-webkit-scrollbar {
+  display: none;
+}
+
+.feed-media-layout.is-dragging {
+  scroll-snap-type: none;
 }
 
 .feed-media-layout .post-image-trigger {
   flex: 0 0 auto;
-  width: min(68cqw, calc(var(--media-height) * var(--media-ratio, 1)));
+  width: clamp(68px, calc(var(--media-height) * var(--media-ratio, 1)), 72cqw);
   height: var(--media-height);
   margin: 0;
   overflow: hidden;
   border-radius: 12px;
   scroll-snap-align: start;
+  background: #f5f5f5;
 }
 
 .feed-media-layout .post-image {
   width: 100%;
   height: 100%;
   max-height: none;
-  object-fit: cover;
+  object-fit: contain;
+}
+
+.feed-media-layout.is-dragging,
+.feed-media-layout.is-dragging .post-image-trigger {
+  cursor: grabbing;
 }
 
 .feed-media-layout .post-image-trigger:focus-visible {
@@ -560,14 +574,16 @@ a {
 }
 
 .feed-media-1 .post-image-trigger {
-  width: 100%;
+  width: fit-content;
+  max-width: 100%;
   height: auto;
   background: #f5f5f5;
 }
 
 .feed-media-1 .post-image {
+  width: auto;
   height: auto;
-  max-height: min(65vh, 520px);
+  max-height: min(60vh, 460px);
   object-fit: contain;
 }
 
