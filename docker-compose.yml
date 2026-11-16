@@ -1,0 +1,90 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${LAB8_POSTGRES_DB:?Укажите LAB8_POSTGRES_DB в .env.docker}
+      POSTGRES_USER: ${LAB8_POSTGRES_USER:?Укажите LAB8_POSTGRES_USER в .env.docker}
+      POSTGRES_PASSWORD: ${LAB8_POSTGRES_PASSWORD:?Укажите LAB8_POSTGRES_PASSWORD в .env.docker}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${LAB8_POSTGRES_USER:?Укажите LAB8_POSTGRES_USER в .env.docker}", "-d", "${LAB8_POSTGRES_DB:?Укажите LAB8_POSTGRES_DB в .env.docker}"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+
+  mongo:
+    image: mongo:8
+    volumes:
+      - mongodata:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand({ping: 1})"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  migrations:
+    build:
+      context: .
+      target: migrations
+    environment:
+      DATABASE_URL: postgresql://${LAB8_POSTGRES_USER:?Укажите LAB8_POSTGRES_USER в .env.docker}:${LAB8_POSTGRES_PASSWORD:?Укажите LAB8_POSTGRES_PASSWORD в .env.docker}@postgres:5432/${LAB8_POSTGRES_DB:?Укажите LAB8_POSTGRES_DB в .env.docker}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backend:
+    build: .
+    environment:
+      NODE_ENV: docker
+      DATABASE_URL: postgresql://${LAB8_POSTGRES_USER:?Укажите LAB8_POSTGRES_USER в .env.docker}:${LAB8_POSTGRES_PASSWORD:?Укажите LAB8_POSTGRES_PASSWORD в .env.docker}@postgres:5432/${LAB8_POSTGRES_DB:?Укажите LAB8_POSTGRES_DB в .env.docker}
+      MONGO_URI: mongodb://mongo:27017/${LAB8_MONGO_DB:?Укажите LAB8_MONGO_DB в .env.docker}
+      JWT_SECRET: ${LAB8_JWT_SECRET:?Укажите LAB8_JWT_SECRET в .env.docker}
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      mongo:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./client
+      args:
+        VITE_API_URL: ${LAB8_API_URL:?Укажите LAB8_API_URL в .env.docker}
+    ports:
+      - "127.0.0.1:80:80"
+    depends_on:
+      - backend
+
+  pgadmin:
+    image: dpage/pgadmin4:9
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${LAB8_PGADMIN_EMAIL:?Укажите LAB8_PGADMIN_EMAIL в .env.docker}
+      PGADMIN_DEFAULT_PASSWORD: ${LAB8_PGADMIN_PASSWORD:?Укажите LAB8_PGADMIN_PASSWORD в .env.docker}
+    ports:
+      - "127.0.0.1:5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  mongo-express:
+    image: mongo-express:1.0.2
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://mongo:27017/
+      ME_CONFIG_BASICAUTH_ENABLED: "true"
+      ME_CONFIG_BASICAUTH_USERNAME: ${LAB8_MONGO_EXPRESS_USER:?Укажите LAB8_MONGO_EXPRESS_USER в .env.docker}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${LAB8_MONGO_EXPRESS_PASSWORD:?Укажите LAB8_MONGO_EXPRESS_PASSWORD в .env.docker}
+    ports:
+      - "127.0.0.1:8081:8081"
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  mongodata:
+  pgadmin_data:
