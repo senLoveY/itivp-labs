@@ -56,8 +56,19 @@ function LoginForm({ onLogin }) {
             type="button"
             onClick={() => setShowPassword(visible => !visible)}
             aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
+            title={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
           >
-            {showPassword ? 'Скрыть' : 'Показать'}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              {showPassword ? (
+                <path d="m3 3 18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9 5.5A10.6 10.6 0 0 1 12 5c6 0 10 7 10 7a18 18 0 0 1-2.7 3.4M6 6.9C3.6 9 2 12 2 12s4 7 10 7a9.8 9.8 0 0 0 4.8-1.4" />
+              ) : (
+                <>
+                  <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </>
+              )}
+            </svg>
           </button>
         </div>
         <button type="submit" className="btn-main" disabled={loading || !email || !password}>

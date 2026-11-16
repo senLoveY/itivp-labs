@@ -833,18 +833,35 @@ b.author-link:hover,
 }
 
 .login-password {
-  display: flex;
-  gap: 4px;
+  position: relative;
 }
 
 .login-password input {
-  min-width: 0;
+  min-height: 46px;
+  padding-inline-end: 54px;
 }
 
 .login-password button {
-  flex-shrink: 0;
-  min-height: 44px;
-  margin-right: 0;
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-end: 2px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  margin: 0;
+}
+
+.login-password button:hover {
+  background: #f3f3f3;
+  color: #111;
+}
+
+.login-password button:focus-visible {
+  outline: 2px solid #555;
+  outline-offset: -3px;
 }
 
 /* админка */
