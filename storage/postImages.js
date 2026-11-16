@@ -18,7 +18,7 @@ const client = process.env.S3_ENDPOINT && new S3Client({
 
 let bucketReady;
 
-async function prepareImage(buffer) {
+async function prepareImage(buffer, { avatar = false } = {}) {
     const input = sharp(buffer, { animated: true, limitInputPixels: 25_000_000, failOn: 'warning' });
     const meta = await input.metadata();
     if (!['jpeg', 'png', 'webp', 'gif', 'heif'].includes(meta.format) ||
@@ -28,8 +28,10 @@ async function prepareImage(buffer) {
         throw new Error('Unsupported image');
     }
 
-    const resized = input.autoOrient().resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true });
-    const gif = meta.format === 'gif';
+    const resized = avatar
+        ? sharp(buffer, { limitInputPixels: 25_000_000, failOn: 'warning' }).autoOrient().resize(256, 256, { fit: 'cover' })
+        : input.autoOrient().resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true });
+    const gif = !avatar && meta.format === 'gif';
     const { data, info } = await (gif ? resized.gif() : resized.webp({ quality: 85 }))
         .toBuffer({ resolveWithObject: true });
     if (data.length > 10 * 1024 * 1024) throw new Error('Encoded image too large');

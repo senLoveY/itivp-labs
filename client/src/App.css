@@ -1322,3 +1322,154 @@ b.author-link:hover,
 .post-head button {
   margin-left: -12px;
 }
+
+.avatar > img {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.profile-settings {
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.profile-settings h2 {
+  margin-top: 0;
+}
+
+.profile-settings .profile-info {
+  margin-bottom: 16px;
+}
+
+.profile-status {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  color: #555;
+}
+
+.profile-avatar-editor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px dashed #ccc;
+  border-radius: 12px;
+}
+
+.profile-avatar-editor label {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+.profile-settings label input {
+  display: block;
+  margin-top: 6px;
+}
+
+.profile-avatar-button {
+  position: relative;
+  flex-shrink: 0;
+  padding: 0;
+  margin: 0;
+  border-radius: 50%;
+}
+
+.profile-avatar-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: inherit;
+  background: rgb(0 0 0 / 55%);
+  color: #fff;
+  opacity: 0;
+}
+
+.profile-avatar-button:hover .profile-avatar-overlay,
+.profile-avatar-button:focus-visible .profile-avatar-overlay {
+  opacity: 1;
+}
+
+.avatar-editor-body {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 16px;
+}
+
+.avatar-crop {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(100%, 220px);
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #eee;
+  color: #555;
+  touch-action: none;
+}
+
+.avatar-crop img {
+  position: absolute;
+  max-width: none;
+  max-height: none;
+  cursor: grab;
+  user-select: none;
+}
+
+.avatar-crop img:active {
+  cursor: grabbing;
+}
+
+.avatar-crop-current {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.avatar-crop-controls {
+  display: grid;
+  gap: 8px;
+  width: min(100%, 300px);
+}
+
+.avatar-crop-controls label {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  align-items: center;
+  font-size: 13px;
+}
+
+.avatar-crop-controls input[type="range"] {
+  margin: 0;
+  padding: 0;
+  accent-color: #444;
+}
+
+.avatar-editor-footer {
+  justify-content: flex-end;
+}
+
+@media (hover: none) {
+  .profile-avatar-overlay {
+    inset: auto 0 0 auto;
+    width: 28px;
+    height: 28px;
+    opacity: 1;
+  }
+
+  .profile-avatar-overlay svg {
+    width: 15px;
+    height: 15px;
+  }
+}

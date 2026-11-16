@@ -5,6 +5,7 @@ import LoginForm from './auth/LoginForm';
 import TweetList from './feed/TweetList';
 import AdminPanel from './admin/AdminPanel';
 import StatsPage from './stats/StatsPage';
+import MyProfilePage from './profile/MyProfilePage';
 import UserPage from './profile/UserPage';
 import PostPage from './post/PostPage';
 import Toasts from './components/Toasts';
@@ -17,6 +18,7 @@ import './App.css';
 function App() {
   const [token, setToken] = useState(() => localStorage.getItem('token'));
   const [page, setPage] = useState('feed');
+  const [avatarVersion, setAvatarVersion] = useState(0);
   const [profileEmail, setProfileEmail] = useState('');
   const [post, setPost] = useState(null);
   const [backPage, setBackPage] = useState('feed');
@@ -42,7 +44,7 @@ function App() {
 
   function changeSearch(value) {
     setSearch(value);
-    if (!['feed', 'mine', 'user'].includes(page)) {
+    if (!['feed', 'profile', 'user'].includes(page)) {
       setPage('feed');
     }
   }
@@ -128,7 +130,7 @@ function App() {
 
   function openProfile(email) {
     if (email === localStorage.getItem('email')) {
-      setPage('mine');
+      setPage('profile');
     } else {
       setProfileEmail(email);
       setPage('user');
@@ -147,6 +149,7 @@ function App() {
       <div className="layout">
         <Sidebar
           email={localStorage.getItem('email')}
+          avatarVersion={avatarVersion}
           isAdmin={isAdmin}
           page={page}
           onlineCount={online.size}
@@ -166,11 +169,16 @@ function App() {
               onOpenPost={openPost}
             />
           )}
-          {page === 'mine' && (
+          {page === 'profile' && (
             <TweetList
-              key="mine"
+              key="profile"
               author={localStorage.getItem('email')}
-              title="Мои посты"
+              header={<MyProfilePage version={avatarVersion} onSaved={() => {
+                setAvatarVersion(value => value + 1);
+                showToast('Профиль сохранён');
+              }} />}
+              title="Публикации"
+              showForm={false}
               showSort
               search={search}
               onSearchChange={changeSearch}

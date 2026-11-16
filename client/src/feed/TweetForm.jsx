@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import CloseIcon from '../components/CloseIcon';
+import UserAvatar from '../components/UserAvatar';
 
 import TagInput, { collectTags } from './TagInput';
 
@@ -108,7 +109,7 @@ function TweetForm({ sending, onAdd }) {
   return (
     <>
       <div className="compose-row" onClick={() => !sending && setOpen(true)}>
-        <div className="avatar">{email[0]?.toUpperCase()}</div>
+        <UserAvatar email={email} />
         <span className="compose-placeholder">Что нового?</span>
         <button type="button" className="btn-outline" disabled={sending}>
           {sending ? 'Отправка...' : 'Опубликовать'}
@@ -156,7 +157,7 @@ function TweetForm({ sending, onAdd }) {
           <div className="modal-body">
             <div className="modal-fields">
               <div className="modal-author">
-                <div className="avatar" aria-hidden="true">{email[0]?.toUpperCase()}</div>
+                <UserAvatar email={email} aria-hidden="true" />
                 <b>{email}</b>
               </div>
               <textarea

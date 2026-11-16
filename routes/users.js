@@ -1,7 +1,17 @@
 const express = require('express');
-const { Tweet } = require('../models');
+const { Tweet, User, sequelize } = require('../models');
 const Comment = require('../mongo-models/Comment');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken, isNotBanned } = require('../middleware/auth');
+
+const multer = require('multer');
+const { pipeline } = require('node:stream/promises');
+const { prepareImage, saveImage, readImage, removeImage } = require('../storage/postImages');
+
+const uploadAvatar = multer({ limits: { fileSize: 10 * 1024 * 1024, files: 1, fields: 2 } }).single('avatar');
+
+function publicProfile(user) {
+    return { email: user.email, status: user.status, hasAvatar: Boolean(user.avatar) };
+}
 
 // данные текущего пользователя: профиль и статистика
 const router = express.Router();
@@ -23,10 +33,80 @@ const router = express.Router();
  *         description: Invalid or expired token
  */
 router.get('/profile', verifyToken, async (req, res) => {
-    res.status(200).json({ 
-        message: "This is a protected profile route.",
-        user: req.user 
+    const user = await User.findByPk(req.user.id);
+    if (!user) return res.sendStatus(404);
+    res.json({ user: { id: user.id, role: user.role, ...publicProfile(user) } });
+});
+
+router.get('/users/profile', async (req, res) => {
+    if (typeof req.query.email !== 'string') return res.sendStatus(400);
+    const user = await User.findOne({ where: { email: req.query.email }, attributes: ['email', 'status', 'avatar'] });
+    if (!user) return res.sendStatus(404);
+    res.json(publicProfile(user));
+});
+
+router.get('/users/avatar', async (req, res, next) => {
+    try {
+        if (typeof req.query.email !== 'string') return res.sendStatus(400);
+        const user = await User.findOne({ where: { email: req.query.email }, attributes: ['avatar'] });
+        if (!user?.avatar) return res.sendStatus(404);
+        const object = await readImage(user.avatar);
+        res.set('Cache-Control', 'no-store');
+        res.set('X-Content-Type-Options', 'nosniff');
+        res.type(user.avatar.type);
+        await pipeline(object.Body, res);
+    } catch (error) {
+        if (error.name === 'NoSuchKey') return res.sendStatus(404);
+        if (!res.destroyed) next(error);
+    }
+});
+
+router.patch('/profile', verifyToken, isNotBanned, (req, res, next) => {
+    uploadAvatar(req, res, error => {
+        if (!error) return next();
+        const tooLarge = error.code === 'LIMIT_FILE_SIZE';
+        res.status(tooLarge ? 413 : 400).json({ error: tooLarge ? 'Фото должно весить не больше 10 МБ.' : 'Выбери одно фото.' });
     });
+}, async (req, res, next) => {
+    const { status, removeAvatar } = req.body ?? {};
+    if (typeof status !== 'string' || status.trim().length > 120 || (req.file && removeAvatar === 'true')) {
+        return res.status(400).json({ error: 'Статус должен содержать не больше 120 символов. Выбери одно действие для фото.' });
+    }
+    let newAvatar;
+    let oldAvatar;
+    let profile;
+    try {
+        if (req.file) {
+            let prepared;
+            try {
+                prepared = await prepareImage(req.file.buffer, { avatar: true });
+            } catch {
+                return res.status(400).json({ error: 'Не удалось обработать фото. Поддерживаются JPEG, PNG, WebP, GIF и AVIF.' });
+            }
+            newAvatar = prepared.image;
+            await saveImage(prepared);
+        }
+        profile = await sequelize.transaction(async transaction => {
+            const user = await User.findByPk(req.user.id, { transaction, lock: transaction.LOCK.UPDATE });
+            if (!user) return null;
+            const changes = { status: status.trim() };
+            if (newAvatar || removeAvatar === 'true') {
+                oldAvatar = user.avatar;
+                changes.avatar = newAvatar ?? null;
+            }
+            await user.update(changes, { transaction });
+            return publicProfile(user);
+        });
+    } catch (error) {
+        await removeImage(newAvatar);
+        return next(error);
+    }
+    if (!profile) {
+        await removeImage(newAvatar);
+        return res.sendStatus(404);
+    }
+    await removeImage(oldAvatar);
+    res.json(profile);
 });
 
 /**

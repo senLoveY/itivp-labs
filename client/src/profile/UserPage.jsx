@@ -1,14 +1,27 @@
+import { useEffect, useState } from 'react';
+import UserAvatar from '../components/UserAvatar';
+import { fetchPublicProfileAPI } from '../api';
 import TweetList from '../feed/TweetList';
 
 function UserPage({ email, search, onSearchChange, onBack, onAuthorClick, onOpenPost }) {
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchPublicProfileAPI(email, controller.signal).then(({ data }) => {
+      setProfile(data);
+    }).catch(() => {});
+    return () => controller.abort();
+  }, [email]);
+
   const header = (
     <div className="profile">
       <button onClick={onBack}>← Назад</button>
       <div className="profile-info">
-        <div className="avatar avatar-big">{email[0]?.toUpperCase()}</div>
+        <UserAvatar email={email} className="avatar-big" />
         <div>
           <h2 className="profile-name">{email}</h2>
-          <p className="hint">Посты пользователя</p>
+          <p className="profile-status">{profile?.email === email && profile.status ? profile.status : 'Посты пользователя'}</p>
         </div>
       </div>
     </div>

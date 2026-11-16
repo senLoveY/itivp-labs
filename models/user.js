@@ -19,6 +19,8 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       unique: true
     },
+    status: { type: DataTypes.STRING(120), allowNull: false, defaultValue: '' },
+    avatar: DataTypes.JSONB,
     passwordHash: {
       type: DataTypes.STRING,
       allowNull: false

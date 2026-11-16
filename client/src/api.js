@@ -72,3 +72,8 @@ export const deleteReplyAPI = (id, replyId) => api.delete(`/comments/${id}/repli
 
 export const fetchNotificationsAPI = () => api.get('/notifications');
 export const readNotificationsAPI = () => api.patch('/notifications/read');
+
+export const fetchMyProfileAPI = signal => api.get('/profile', { signal });
+export const fetchPublicProfileAPI = (email, signal) => api.get('/users/profile', { params: { email }, signal });
+export const saveProfileAPI = data => api.patch('/profile', data);
+export const avatarURL = (email, version) => api.getUri({ url: '/users/avatar', params: { email, v: version } });

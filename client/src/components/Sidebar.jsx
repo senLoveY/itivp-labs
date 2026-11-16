@@ -1,10 +1,11 @@
 import { ChartIcon, CompassIcon, LogoutIcon, ShieldIcon, UserIcon } from './Icons';
+import UserAvatar from './UserAvatar';
 import NotificationBell from './NotificationBell';
 
-function Sidebar({ email, isAdmin, page, onlineCount, onChangePage, onLogout, onToast }) {
+function Sidebar({ email, avatarVersion, isAdmin, page, onlineCount, onChangePage, onLogout, onToast }) {
   const pages = [
     { id: 'feed', title: 'Лента', icon: <CompassIcon /> },
-    { id: 'mine', title: 'Мои посты', icon: <UserIcon /> },
+    { id: 'profile', title: 'Профиль', icon: <UserIcon /> },
     { id: 'stats', title: 'Статистика', icon: <ChartIcon /> }
   ];
   if (isAdmin) pages.push({ id: 'admin', title: 'Админка', icon: <ShieldIcon /> });
@@ -39,7 +40,7 @@ function Sidebar({ email, isAdmin, page, onlineCount, onChangePage, onLogout, on
         </div>
 
         <div className="side-user">
-          <div className="avatar">{email?.[0]?.toUpperCase()}</div>
+          <UserAvatar email={email} version={avatarVersion} />
           <span className="side-label side-email" title={email}>{email}</span>
           <button className="side-logout" onClick={onLogout} title="Выйти">
             <LogoutIcon />

@@ -1,4 +1,5 @@
 import { useContext, useRef, useState } from 'react';
+import UserAvatar from '../components/UserAvatar';
 import CloseIcon from '../components/CloseIcon';
 import TagInput, { collectTags } from './TagInput';
 import CommentSection from './CommentSection';
@@ -36,10 +37,9 @@ function TweetItem({ tweet, full = false, canChange, commentsCount, onLike, onDe
 
   return (
     <div className="tweet">
-      <div className="avatar author-link" onClick={() => onAuthorClick(tweet.author)}>
-        {tweet.author?.[0]?.toUpperCase()}
+      <UserAvatar email={tweet.author} className="author-link" onClick={() => onAuthorClick(tweet.author)}>
         {online.has(tweet.author) && <span className="online-dot" title="В сети" />}
-      </div>
+      </UserAvatar>
 
       <div className="tweet-body">
         <div className="tweet-top">
