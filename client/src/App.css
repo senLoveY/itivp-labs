@@ -617,6 +617,21 @@ b.author-link:hover,
   margin-bottom: 16px;
 }
 
+.login-password {
+  display: flex;
+  gap: 4px;
+}
+
+.login-password input {
+  min-width: 0;
+}
+
+.login-password button {
+  flex-shrink: 0;
+  min-height: 44px;
+  margin-right: 0;
+}
+
 /* админка */
 
 .feed.admin {

@@ -5,6 +5,7 @@ import { clearCache } from '../cache';
 function LoginForm({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [isRegister, setIsRegister] = useState(false);
@@ -41,12 +42,24 @@ function LoginForm({ onLogin }) {
           value={email}
           onChange={e => setEmail(e.target.value)}
         />
-        <input
-          type="password"
-          placeholder="Пароль"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-        />
+        <div className="login-password">
+          <input
+            type={showPassword ? 'text' : 'password'}
+            name="password"
+            autoComplete={isRegister ? 'new-password' : 'current-password'}
+            aria-label="Пароль"
+            placeholder="Пароль"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(visible => !visible)}
+            aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
+          >
+            {showPassword ? 'Скрыть' : 'Показать'}
+          </button>
+        </div>
         <button type="submit" className="btn-main" disabled={loading || !email || !password}>
           {loading ? 'Подождите...' : isRegister ? 'Зарегистрироваться' : 'Войти'}
         </button>
@@ -61,6 +74,7 @@ function LoginForm({ onLogin }) {
           onClick={e => {
             e.preventDefault();
             setIsRegister(!isRegister);
+            setShowPassword(false);
             setError('');
           }}
         >
