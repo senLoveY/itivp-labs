@@ -191,6 +191,9 @@ docker compose --env-file .env.docker -p lab8 ps -a
 - Backend: http://localhost:3000/api-docs/
 - pgAdmin: http://localhost:5050 — `admin@example.com` / `lab8pgadmin`. В настройках сервера укажите хост `postgres`, порт `5432`, базу и пользователя `microblog`, пароль `lab8postgres`.
 - mongo-express: http://localhost:8081 — `admin` / `lab8mongo`.
+- MinIO Console: http://127.0.0.1:9001 — логин и пароль из `LAB8_MINIO_USER` и `LAB8_MINIO_PASSWORD` в `.env.docker`.
+
+В MinIO фото публикаций хранятся в бакете `post-images`, а аватарки — в `avatars`. Бакеты создаются при первой загрузке соответствующего файла.
 
 Это настройки для локальной лабораторной. PostgreSQL и MongoDB не публикуют порты на хост. Compose передаёт локальные строки подключения явно; облачные адреса из обычного `.env` для контейнеров не используются. Миграции PostgreSQL выполняются перед запуском backend. Новые базы изначально пустые, пользователя можно создать через форму регистрации.
 

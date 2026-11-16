@@ -5,7 +5,8 @@ const {
     GetObjectCommand, DeleteObjectCommand
 } = require('@aws-sdk/client-s3');
 
-const bucket = process.env.S3_IMAGE_BUCKET || 'post-images';
+const postBucket = process.env.S3_IMAGE_BUCKET || 'post-images';
+const avatarBucket = process.env.S3_AVATAR_BUCKET || 'avatars';
 const client = process.env.S3_ENDPOINT && new S3Client({
     endpoint: process.env.S3_ENDPOINT,
     region: 'us-east-1',
@@ -16,7 +17,8 @@ const client = process.env.S3_ENDPOINT && new S3Client({
     }
 });
 
-let bucketReady;
+const readyBuckets = new Map();
+const bucketFor = image => image.kind === 'avatar' ? avatarBucket : postBucket;
 
 async function prepareImage(buffer, { avatar = false } = {}) {
     const input = sharp(buffer, { animated: true, limitInputPixels: 25_000_000, failOn: 'warning' });
@@ -40,6 +42,7 @@ async function prepareImage(buffer, { avatar = false } = {}) {
         data,
         image: {
             key: randomUUID(),
+            ...(avatar ? { kind: 'avatar' } : {}),
             type: gif ? 'image/gif' : 'image/webp',
             width: info.width,
             height: info.pageHeight || info.height
@@ -47,34 +50,42 @@ async function prepareImage(buffer, { avatar = false } = {}) {
     };
 }
 
-async function saveImage({ data, image }) {
+function ensureImageBucket(image) {
     if (!client) throw new Error('S3 storage is not configured');
-    bucketReady ??= client.send(new HeadBucketCommand({ Bucket: bucket })).catch(async error => {
-        if (error.$metadata?.httpStatusCode !== 404) throw error;
-        try {
-            await client.send(new CreateBucketCommand({ Bucket: bucket }));
-        } catch (createError) {
-            if (createError.name !== 'BucketAlreadyOwnedByYou') throw createError;
-        }
-    }).catch(error => {
-        bucketReady = undefined;
-        throw error;
-    });
-    await bucketReady;
+    const bucket = bucketFor(image);
+    if (!readyBuckets.has(bucket)) {
+        const pending = client.send(new HeadBucketCommand({ Bucket: bucket })).catch(async error => {
+            if (error.$metadata?.httpStatusCode !== 404) throw error;
+            try {
+                await client.send(new CreateBucketCommand({ Bucket: bucket }));
+            } catch (createError) {
+                if (createError.name !== 'BucketAlreadyOwnedByYou') throw createError;
+            }
+        }).catch(error => {
+            readyBuckets.delete(bucket);
+            throw error;
+        });
+        readyBuckets.set(bucket, pending);
+    }
+    return readyBuckets.get(bucket);
+}
+
+async function saveImage({ data, image }) {
+    await ensureImageBucket(image);
     await client.send(new PutObjectCommand({
-        Bucket: bucket, Key: image.key, Body: data, ContentType: image.type
+        Bucket: bucketFor(image), Key: image.key, Body: data, ContentType: image.type
     }));
 }
 
 function readImage(image) {
     if (!client) throw new Error('S3 storage is not configured');
-    return client.send(new GetObjectCommand({ Bucket: bucket, Key: image.key }));
+    return client.send(new GetObjectCommand({ Bucket: bucketFor(image), Key: image.key }));
 }
 
 async function removeImage(image) {
     if (!image || !client) return;
     try {
-        await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: image.key }));
+        await client.send(new DeleteObjectCommand({ Bucket: bucketFor(image), Key: image.key }));
     } catch (error) {
         console.error('Could not remove post image:', error.name);
     }
