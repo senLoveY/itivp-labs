@@ -421,6 +421,17 @@ a {
   background: #e0e0e0;
 }
 
+.tag-editor {
+  margin: 6px 0;
+}
+
+.tag-editor .tag,
+.tags > button.tag {
+  margin-right: 0;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
 .tweet-buttons {
   margin-left: -12px;
 }

@@ -1,17 +1,13 @@
 import { useEffect, useState } from 'react';
 
-function parseTags(str) {
-  return str
-    .split(' ')
-    .filter(t => t.trim())
-    .map(t => (t.startsWith('#') ? t : '#' + t));
-}
+import TagInput, { collectTags } from './TagInput';
 
 function TweetForm({ sending, onAdd }) {
   const email = localStorage.getItem('email') || '';
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
-  const [tags, setTags] = useState('');
+  const [tags, setTags] = useState([]);
+  const [tagDraft, setTagDraft] = useState('');
 
   useEffect(() => {
     if (!open) return;
@@ -33,15 +29,16 @@ function TweetForm({ sending, onAdd }) {
     if (!text.trim() || sending) return;
 
     const content = text.trim();
-    const tagsText = tags;
+    const hashtags = collectTags(tags, tagDraft);
     setOpen(false);
     setText('');
-    setTags('');
+    setTags([]);
+    setTagDraft('');
 
-    const ok = await onAdd(content, parseTags(tagsText));
+    const ok = await onAdd(content, hashtags);
     if (!ok) {
       setText(content);
-      setTags(tagsText);
+      setTags(hashtags);
       setOpen(true);
     }
   }
@@ -85,12 +82,7 @@ function TweetForm({ sending, onAdd }) {
                   rows={4}
                   maxLength={280}
                 />
-                <input
-                  type="text"
-                  placeholder="Теги через пробел, например #micro #blog"
-                  value={tags}
-                  onChange={e => setTags(e.target.value)}
-                />
+                <TagInput tags={tags} draft={tagDraft} onChange={setTags} onDraftChange={setTagDraft} />
               </div>
             </div>
 

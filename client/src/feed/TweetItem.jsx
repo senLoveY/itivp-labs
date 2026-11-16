@@ -1,4 +1,5 @@
 import { useContext, useState } from 'react';
+import TagInput, { collectTags } from './TagInput';
 import CommentSection from './CommentSection';
 import { HeartIcon, CommentIcon } from '../components/Icons';
 import { OnlineContext } from '../online';
@@ -6,17 +7,21 @@ import { OnlineContext } from '../online';
 function TweetItem({ tweet, full = false, canChange, commentsCount, onLike, onDelete, onSave, onTagClick, onAuthorClick, onOpenPost }) {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState('');
+  const [editTags, setEditTags] = useState([]);
+  const [tagDraft, setTagDraft] = useState('');
   const [showComments, setShowComments] = useState(false);
   const online = useContext(OnlineContext);
 
   function startEdit() {
     setEditText(tweet.content);
+    setEditTags(collectTags(tweet.hashtags ?? [], ''));
+    setTagDraft('');
     setEditing(true);
   }
 
   function save() {
     if (!editText.trim()) return;
-    onSave(tweet.id, editText.trim());
+    onSave(tweet.id, editText.trim(), collectTags(editTags, tagDraft));
     setEditing(false);
   }
 
@@ -43,6 +48,7 @@ function TweetItem({ tweet, full = false, canChange, commentsCount, onLike, onDe
               rows={3}
               maxLength={280}
             />
+            <TagInput tags={editTags} draft={tagDraft} onChange={setEditTags} onDraftChange={setTagDraft} />
             <button className="btn-main" onClick={save}>Сохранить</button>
             <button onClick={() => setEditing(false)}>Отмена</button>
           </div>
@@ -55,12 +61,12 @@ function TweetItem({ tweet, full = false, canChange, commentsCount, onLike, onDe
           </p>
         )}
 
-        {tweet.hashtags?.length > 0 && (
+        {!editing && tweet.hashtags?.length > 0 && (
           <div className="tags">
             {tweet.hashtags.map(tag => (
-              <span key={tag} className="tag" onClick={() => onTagClick(tag)}>
+              <button type="button" key={tag} className="tag" onClick={() => onTagClick(tag)}>
                 {tag}
-              </span>
+              </button>
             ))}
           </div>
         )}

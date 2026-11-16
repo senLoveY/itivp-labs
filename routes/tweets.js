@@ -5,8 +5,20 @@ const Comment = require('../mongo-models/Comment');
 const { verifyToken, isNotBanned, getUserFromToken } = require('../middleware/auth');
 const { getIO } = require('../socket');
 const notify = require('../socket/notify');
-
 const router = express.Router();
+
+function normalizeHashtags(hashtags = []) {
+    if (!Array.isArray(hashtags) || hashtags.some(tag => typeof tag !== 'string')) {
+        return null;
+    }
+
+    const tags = hashtags.map(tag =>
+        tag.trim().replace(/^#+/, '').toLowerCase().normalize('NFC')
+    ).filter(Boolean);
+    if (tags.some(tag => /[\s,#]/u.test(tag))) return null;
+
+    return [...new Set(tags.map(tag => '#' + tag))];
+}
 
 /**
  * @swagger
@@ -35,7 +47,7 @@ const router = express.Router();
  *         name: search
  *         schema:
  *           type: string
- *         description: Search in content, author and hashtags (case-insensitive)
+ *         description: Search in content, author and hashtags (case-insensitive). A single hashtag such as "#react" matches that whole tag.
  *       - in: query
  *         name: author
  *         schema:
@@ -81,7 +93,7 @@ const router = express.Router();
  *       201:
  *         description: Tweet successfully created
  *       400:
- *         description: The content field is mandatory
+ *         description: Missing content or invalid tags
  *       401:
  *         description: Token not provided
  *       403:
@@ -95,17 +107,29 @@ router.get('/', async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 10;
         const offset = parseInt(req.query.offset) || 0;
-        const search = req.query.search || '';
+        const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
         const author = req.query.author || '';
         const sort = req.query.sort || 'new';
 
-        const whereClause = search ? {
+        const hashtagsText = sequelize.cast(sequelize.col('hashtags'), 'text');
+        let whereClause = search ? {
             [Op.or]: [
                 { content: { [Op.iLike]: `%${search}%` } },
                 { author: { [Op.iLike]: `%${search}%` } },
-                sequelize.where(sequelize.cast(sequelize.col('hashtags'), 'text'), { [Op.iLike]: `%${search}%` })
+                sequelize.where(hashtagsText, { [Op.iLike]: `%${search}%` })
             ]
         } : {};
+
+        if (search.startsWith('#') && search.length > 1 && !/\s/u.test(search)) {
+            // Search for a whole JSON string, including its quotes, even in older posts.
+            const tag = JSON.stringify(search.toLowerCase().normalize('NFC'));
+            whereClause = {
+                [Op.and]: sequelize.where(
+                    sequelize.fn('strpos', sequelize.fn('lower', hashtagsText), tag),
+                    { [Op.gt]: 0 }
+                )
+            };
+        }
 
         if (author) {
             whereClause.author = author;
@@ -250,15 +274,17 @@ router.post('/', verifyToken, isNotBanned, async (req, res) => {
     try {
         const { content, hashtags } = req.body;
         const author = req.user.email;
+        const tags = normalizeHashtags(hashtags);
+        if (!tags) return res.status(400).json({ error: 'Передайте теги массивом строк, по одному тегу в строке.' });
 
-        if (!content) {
+        if (typeof content !== 'string' || !content.trim()) {
             return res.status(400).json({ error: "The 'content' field is mandatory." });
         }
 
         const newTweet = await Tweet.create({
             author,
             content,
-            hashtags: hashtags || []
+            hashtags: tags
         });
 
         getIO().emit('tweet:new', newTweet);
@@ -286,9 +312,14 @@ router.put('/:id', verifyToken, isNotBanned, async (req, res) => {
             return res.status(400).json({ error: "The 'content' field are mandatory for update." });
         }
 
+        const tags = hashtags === undefined ? tweet.hashtags : normalizeHashtags(hashtags);
+        if (hashtags !== undefined && !tags) {
+            return res.status(400).json({ error: 'Передайте теги массивом строк, по одному тегу в строке.' });
+        }
+
         await tweet.update({
             content,
-            hashtags: hashtags || []
+            hashtags: tags
         });
 
         getIO().emit('tweet:update', tweet);

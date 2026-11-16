@@ -257,13 +257,13 @@ function TweetList({
     return tweet.author === user?.email || user?.role === 'admin';
   }
 
-  async function saveEdit(id, newContent) {
+  async function saveEdit(id, newContent, hashtags) {
     const old = tweets.find(t => t.id === id);
 
-    setTweets(prev => prev.map(t => (t.id === id ? { ...t, content: newContent } : t)));
+    setTweets(prev => prev.map(t => (t.id === id ? { ...t, content: newContent, hashtags } : t)));
 
     try {
-      const res = await updateTweetAPI(id, { content: newContent, hashtags: old.hashtags });
+      const res = await updateTweetAPI(id, { content: newContent, hashtags });
       clearCache();
       setTweets(prev => prev.map(t => (t.id === id ? { ...res.data, liked: t.liked } : t)));
     } catch (err) {

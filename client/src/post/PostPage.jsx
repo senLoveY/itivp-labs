@@ -74,12 +74,12 @@ function PostPage({ tweet: initial, onBack, onTagClick, onAuthorClick }) {
     }
   }
 
-  async function save(id, content) {
+  async function save(id, content, hashtags) {
     const old = tweet;
-    setTweet(prev => ({ ...prev, content }));
+    setTweet(prev => ({ ...prev, content, hashtags }));
 
     try {
-      const res = await updateTweetAPI(id, { content, hashtags: old.hashtags });
+      const res = await updateTweetAPI(id, { content, hashtags });
       clearCache();
       setTweet(prev => ({ ...res.data, liked: prev.liked }));
     } catch (err) {
