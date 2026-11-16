@@ -72,17 +72,20 @@ function TweetItem({ tweet, full = false, canChange, commentsCount, onLike, onDe
 
         {images.length > 0 && (
           <>
-            <div className={images.length > 1 ? 'post-image-grid' : undefined}>
-              {images.map((image, index) => (
-                <button key={image.key} type="button" className="post-image-trigger"
-                  aria-label={`Увеличить изображение ${index + 1}`} onClick={() => {
-                    setSelectedImage(index);
-                    imageDialog.current.showModal();
-                  }}>
-                  <img className="post-image" src={tweetImageURL(tweet.id, index)} alt={`Изображение ${index + 1} к публикации`}
-                    loading="lazy" width={image.width} height={image.height} />
-                </button>
-              ))}
+            <div className="feed-media">
+              <div className={`feed-media-layout${images.length === 1 ? ' feed-media-1' : ''}`}>
+                {images.map((image, index) => (
+                  <button key={image.key} type="button" className="post-image-trigger"
+                    style={{ '--media-ratio': Math.max(0.55, image.width / image.height || 1) }}
+                    aria-label={`Увеличить изображение ${index + 1}`} onClick={() => {
+                      setSelectedImage(index);
+                      imageDialog.current.showModal();
+                    }}>
+                    <img className="post-image" src={tweetImageURL(tweet.id, index)} alt={`Изображение ${index + 1} к публикации`}
+                      loading="lazy" width={image.width} height={image.height} />
+                  </button>
+                ))}
+              </div>
             </div>
             <dialog ref={imageDialog} className="image-dialog" aria-label="Изображения к публикации"
               onClick={e => {

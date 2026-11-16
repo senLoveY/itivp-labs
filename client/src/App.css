@@ -514,6 +514,63 @@ a {
   max-height: 160px;
 }
 
+.feed-media {
+  container-type: inline-size;
+  min-width: 0;
+  margin: 8px 0;
+}
+
+.feed-media-layout {
+  --media-height: clamp(132px, 64cqw, 300px);
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  overscroll-behavior-x: contain;
+}
+
+.feed-media-layout .post-image-trigger {
+  flex: 0 0 auto;
+  width: min(68cqw, calc(var(--media-height) * var(--media-ratio, 1)));
+  height: var(--media-height);
+  margin: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  scroll-snap-align: start;
+}
+
+.feed-media-layout .post-image {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: cover;
+}
+
+.feed-media-layout .post-image-trigger:focus-visible {
+  outline: 2px solid #555;
+  outline-offset: -3px;
+}
+
+.feed-media-1 {
+  display: block;
+  overflow: visible;
+  padding: 0;
+}
+
+.feed-media-1 .post-image-trigger {
+  width: 100%;
+  height: auto;
+  background: #f5f5f5;
+}
+
+.feed-media-1 .post-image {
+  height: auto;
+  max-height: min(65vh, 520px);
+  object-fit: contain;
+}
+
 .post-image-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
