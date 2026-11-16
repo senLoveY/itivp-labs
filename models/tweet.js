@@ -17,6 +17,7 @@ module.exports = (sequelize, DataTypes) => {
     author: DataTypes.STRING,
     content: DataTypes.TEXT,
     hashtags: DataTypes.JSONB,
+    image: DataTypes.JSONB,
     likesCount: DataTypes.INTEGER 
   }, {
     sequelize,

@@ -23,6 +23,14 @@ services:
       timeout: 5s
       retries: 15
 
+  minio:
+    build: ./docker/minio
+    environment:
+      MINIO_ROOT_USER: ${LAB8_MINIO_USER:?Set LAB8_MINIO_USER in .env.docker}
+      MINIO_ROOT_PASSWORD: ${LAB8_MINIO_PASSWORD:?Set LAB8_MINIO_PASSWORD in .env.docker}
+    volumes:
+      - minio_data:/data
+
   migrations:
     build:
       context: .
@@ -37,12 +45,17 @@ services:
     build: .
     environment:
       NODE_ENV: docker
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: ${LAB8_MINIO_USER:?Set LAB8_MINIO_USER in .env.docker}
+      S3_SECRET_KEY: ${LAB8_MINIO_PASSWORD:?Set LAB8_MINIO_PASSWORD in .env.docker}
       DATABASE_URL: postgresql://${LAB8_POSTGRES_USER:?Укажите LAB8_POSTGRES_USER в .env.docker}:${LAB8_POSTGRES_PASSWORD:?Укажите LAB8_POSTGRES_PASSWORD в .env.docker}@postgres:5432/${LAB8_POSTGRES_DB:?Укажите LAB8_POSTGRES_DB в .env.docker}
       MONGO_URI: mongodb://mongo:27017/${LAB8_MONGO_DB:?Укажите LAB8_MONGO_DB в .env.docker}
       JWT_SECRET: ${LAB8_JWT_SECRET:?Укажите LAB8_JWT_SECRET в .env.docker}
     ports:
       - "127.0.0.1:3000:3000"
     depends_on:
+      minio:
+        condition: service_started
       migrations:
         condition: service_completed_successfully
       mongo:
@@ -87,4 +100,5 @@ services:
 volumes:
   pgdata:
   mongodata:
+  minio_data:
   pgadmin_data:

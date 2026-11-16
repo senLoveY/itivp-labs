@@ -1,7 +1,9 @@
-import { useContext, useState } from 'react';
+import { useContext, useRef, useState } from 'react';
+import CloseIcon from '../components/CloseIcon';
 import TagInput, { collectTags } from './TagInput';
 import CommentSection from './CommentSection';
 import { HeartIcon, CommentIcon } from '../components/Icons';
+import { tweetImageURL } from '../api';
 import { OnlineContext } from '../online';
 
 function TweetItem({ tweet, full = false, canChange, commentsCount, onLike, onDelete, onSave, onTagClick, onAuthorClick, onOpenPost }) {
@@ -11,6 +13,13 @@ function TweetItem({ tweet, full = false, canChange, commentsCount, onLike, onDe
   const [tagDraft, setTagDraft] = useState('');
   const [showComments, setShowComments] = useState(false);
   const online = useContext(OnlineContext);
+  const imageDialog = useRef(null);
+  const [selectedImage, setSelectedImage] = useState(0);
+  const images = Array.isArray(tweet.image) ? tweet.image : tweet.image ? [tweet.image] : [];
+
+  function stepImage(direction) {
+    setSelectedImage(index => (index + direction + images.length) % images.length);
+  }
 
   function startEdit() {
     setEditText(tweet.content);
@@ -59,6 +68,45 @@ function TweetItem({ tweet, full = false, canChange, commentsCount, onLike, onDe
           >
             {tweet.content}
           </p>
+        )}
+
+        {images.length > 0 && (
+          <>
+            <div className={images.length > 1 ? 'post-image-grid' : undefined}>
+              {images.map((image, index) => (
+                <button key={image.key} type="button" className="post-image-trigger"
+                  aria-label={`Увеличить изображение ${index + 1}`} onClick={() => {
+                    setSelectedImage(index);
+                    imageDialog.current.showModal();
+                  }}>
+                  <img className="post-image" src={tweetImageURL(tweet.id, index)} alt={`Изображение ${index + 1} к публикации`}
+                    loading="lazy" width={image.width} height={image.height} />
+                </button>
+              ))}
+            </div>
+            <dialog ref={imageDialog} className="image-dialog" aria-label="Изображения к публикации"
+              onClick={e => {
+                if (e.target === e.currentTarget) e.currentTarget.close();
+              }}
+              onKeyDown={e => {
+                if (images.length < 2 || !['ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+                e.preventDefault();
+                stepImage(e.key === 'ArrowLeft' ? -1 : 1);
+              }}>
+              <button type="button" className="image-dialog-close centered-close" autoFocus aria-label="Закрыть"
+                onClick={() => imageDialog.current.close()}>
+                <CloseIcon />
+              </button>
+              <img src={tweetImageURL(tweet.id, selectedImage)} alt={`Изображение ${selectedImage + 1} к публикации`} loading="lazy" />
+              {images.length > 1 && (
+                <div className="image-gallery-nav">
+                  <button type="button" aria-label="Предыдущее изображение" onClick={() => stepImage(-1)}>‹</button>
+                  <span aria-live="polite">{selectedImage + 1} / {images.length}</span>
+                  <button type="button" aria-label="Следующее изображение" onClick={() => stepImage(1)}>›</button>
+                </div>
+              )}
+            </dialog>
+          </>
         )}
 
         {!editing && tweet.hashtags?.length > 0 && (

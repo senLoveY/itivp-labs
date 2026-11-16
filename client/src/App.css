@@ -425,6 +425,153 @@ a {
   margin: 6px 0;
 }
 
+.post-image-trigger {
+  display: block;
+  margin: 8px 0;
+  padding: 0;
+  max-width: 100%;
+  border-radius: 12px;
+  cursor: zoom-in;
+}
+
+.post-image-picker {
+  margin: 4px 0;
+}
+
+.attachment-button {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  margin: 0;
+  border-radius: 50%;
+  color: #555;
+}
+
+.attachment-button:hover {
+  color: #111;
+}
+
+.image-dialog {
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #151515;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100dvh - 32px);
+}
+
+.image-dialog::backdrop {
+  background: rgb(0 0 0 / 80%);
+}
+
+.image-dialog img {
+  display: block;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100dvh - 32px);
+  object-fit: contain;
+}
+
+.image-dialog-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  margin: 0;
+  width: 44px;
+  height: 44px;
+  background: #222;
+  color: #fff;
+}
+
+.image-dialog-close:hover {
+  background: #444;
+}
+
+.centered-close > svg {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  display: block;
+  pointer-events: none;
+}
+
+.post-image,
+.post-image-preview {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  max-height: 420px;
+  object-fit: contain;
+  border-radius: 12px;
+}
+
+.post-image-preview {
+  max-height: 160px;
+}
+
+.post-image-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.post-image-grid > .post-image-card:only-child {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+.post-image-grid > .post-image-trigger {
+  margin: 0;
+  overflow: hidden;
+}
+
+.post-image-grid .post-image,
+.post-image-grid .post-image-preview {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.post-image-grid > .post-image-card:only-child .post-image-preview {
+  width: auto;
+  aspect-ratio: auto;
+  object-fit: contain;
+}
+
+.image-gallery-nav {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 24px;
+  background: #222;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.image-gallery-nav button {
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border-radius: 50%;
+  color: inherit;
+  font-size: 24px;
+}
+
+.image-gallery-nav button:hover {
+  background: #444;
+}
+
 .tag-editor .tag,
 .tags > button.tag {
   margin-right: 0;
@@ -982,92 +1129,169 @@ b.author-link:hover,
   font-weight: 600;
 }
 
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 200;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 12vh 16px 16px;
-  background: rgba(0, 0, 0, 0.45);
-  animation: fade-in 0.15s ease-out;
+.composer-dialog {
+  width: min(100% - 24px, 540px);
+  max-height: calc(100dvh - 24px);
+  padding: 0;
+  border: 1px solid #ddd;
+  border-radius: 18px;
+  background: #fff;
+  color: #191919;
+  box-shadow: 0 18px 64px rgb(0 0 0 / 20%);
+}
+
+.composer-dialog::backdrop {
+  background: rgb(0 0 0 / 52%);
 }
 
 .modal {
-  width: 100%;
-  max-width: 560px;
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.25);
-  animation: modal-in 0.18s ease-out;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 26px);
+}
+
+.modal-head,
+.modal-foot {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
 }
 
 .modal-head {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 14px 16px;
+  justify-content: space-between;
   border-bottom: 1px solid #eee;
-  font-size: 16px;
+}
+
+.modal-head h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.modal-cancel,
+.preview-remove {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  margin: 0;
+  border-radius: 50%;
+  font-size: 24px;
+  line-height: 1;
 }
 
 .modal-cancel {
-  position: absolute;
-  left: 8px;
-  color: #111;
-  font-size: 15px;
+  position: relative;
 }
 
 .modal-body {
-  display: flex;
-  gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
   padding: 16px;
 }
 
 .modal-fields {
-  flex: 1;
-  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 12px;
 }
 
-.modal-fields textarea,
-.modal-fields input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 2px 0;
-  border: none;
-  outline: none;
-  resize: none;
-  font: inherit;
-  font-size: 15px;
-  background: none;
-}
-
-.modal-fields input {
-  padding-top: 8px;
-  border-top: 1px solid #f0f0f0;
+.modal-author {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-size: 14px;
-  color: #1d6fd1;
+  overflow-wrap: anywhere;
+}
+
+.modal-author .avatar {
+  flex-shrink: 0;
+}
+
+.modal-fields textarea {
+  min-height: 104px;
+  padding: 10px 12px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.modal-fields input,
+.modal-fields textarea {
+  background: #fafafa;
+  color: inherit;
+}
+
+.composer-dialog :focus-visible {
+  outline: 2px solid #555;
+  outline-offset: 2px;
+}
+
+.modal-fields .tag-editor,
+.modal-fields .error,
+.modal-foot .post-image-picker {
+  margin: 0;
 }
 
 .modal-foot {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px 16px;
+  border-top: 1px solid #eee;
 }
 
-@keyframes fade-in {
-  from { opacity: 0; }
+.modal-count {
+  margin-left: auto;
+  color: #666;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
 }
 
-@keyframes modal-in {
-  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+.modal-count.at-limit {
+  color: #222;
+  font-weight: 600;
+}
+
+.post-image-card {
+  position: relative;
+  align-self: flex-start;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.preview-remove {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: #222;
+  color: #fff;
+}
+
+.preview-remove:hover {
+  background: #444;
+}
+
+.modal-file-drag::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 2px dashed #555;
+  border-radius: 13px;
+  pointer-events: none;
+}
+
+.modal-drop-hint {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  width: max-content;
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #222;
+  color: #fff;
+  text-align: center;
+  pointer-events: none;
 }
 
 .show-all {

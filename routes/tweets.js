@@ -5,7 +5,79 @@ const Comment = require('../mongo-models/Comment');
 const { verifyToken, isNotBanned, getUserFromToken } = require('../middleware/auth');
 const { getIO } = require('../socket');
 const notify = require('../socket/notify');
+const multer = require('multer');
+const { pipeline } = require('node:stream/promises');
+const { prepareImage, saveImage, readImage, removeImage } = require('../storage/postImages');
+
 const router = express.Router();
+const upload = multer({ limits: { fileSize: 10 * 1024 * 1024, files: 4, fields: 2, parts: 7 } }).array('image', 4);
+
+function parsePostUpload(req, res, next) {
+    if (!req.is('multipart/form-data')) return next();
+    upload(req, res, error => {
+        if (error) {
+            const tooLarge = error.code === 'LIMIT_FILE_SIZE';
+            return res.status(tooLarge ? 413 : 400).json({
+                error: tooLarge ? 'Изображение должно весить не больше 10 МБ.' : 'Можно прикрепить до четырёх изображений.'
+            });
+        }
+
+        try {
+            if (req.body.hashtags !== undefined) req.body.hashtags = JSON.parse(req.body.hashtags);
+        } catch {
+            return res.status(400).json({ error: 'Не удалось прочитать теги.' });
+        }
+        next();
+    });
+}
+
+function postImages(image) {
+    return Array.isArray(image) ? image : image ? [image] : [];
+}
+
+/**
+ * @swagger
+ * /tweets/{id}/image:
+ *   get:
+ *     summary: Get the image attached to a tweet
+ *     tags: [Tweets]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: index
+ *         schema:
+ *           type: integer
+ *           minimum: 0
+ *           maximum: 3
+ *           default: 0
+ *     responses:
+ *       200:
+ *         description: Image bytes (WebP or GIF)
+ *       404:
+ *         description: No image attached to this tweet
+ */
+router.get('/:id/image', async (req, res, next) => {
+    try {
+        const tweet = await Tweet.findByPk(req.params.id);
+        const index = req.query.index ?? '0';
+        if (typeof index !== 'string' || !/^[0-3]$/.test(index)) return res.sendStatus(404);
+        const image = postImages(tweet?.image)[Number(index)];
+        if (!image) return res.sendStatus(404);
+
+        const object = await readImage(image);
+        res.set('X-Content-Type-Options', 'nosniff');
+        res.type(image.type);
+        if (object.ContentLength !== undefined) res.set('Content-Length', String(object.ContentLength));
+        await pipeline(object.Body, res);
+    } catch (error) {
+        if (error.name === 'NoSuchKey') return res.sendStatus(404);
+        if (!res.destroyed) next(error);
+    }
+});
 
 function normalizeHashtags(hashtags = []) {
     if (!Array.isArray(hashtags) || hashtags.some(tag => typeof tag !== 'string')) {
@@ -89,11 +161,29 @@ function normalizeHashtags(hashtags = []) {
  *                 items:
  *                   type: string
  *                 example: ["#swagger", "#api"]
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [content]
+ *             properties:
+ *               content:
+ *                 type: string
+ *               hashtags:
+ *                 type: string
+ *                 example: '["#swagger", "#api"]'
+ *               image:
+ *                 type: array
+ *                 maxItems: 4
+ *                 items:
+ *                   type: string
+ *                   format: binary
  *     responses:
  *       201:
  *         description: Tweet successfully created
  *       400:
- *         description: Missing content or invalid tags
+ *         description: Missing content, invalid tags or unsupported image
+ *       413:
+ *         description: Image exceeds 10 MB
  *       401:
  *         description: Token not provided
  *       403:
@@ -270,7 +360,9 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-router.post('/', verifyToken, isNotBanned, async (req, res) => {
+router.post('/', verifyToken, isNotBanned, parsePostUpload, async (req, res) => {
+    const images = [];
+    let newTweet;
     try {
         const { content, hashtags } = req.body;
         const author = req.user.email;
@@ -281,15 +373,31 @@ router.post('/', verifyToken, isNotBanned, async (req, res) => {
             return res.status(400).json({ error: "The 'content' field is mandatory." });
         }
 
-        const newTweet = await Tweet.create({
+        for (const file of req.files ?? []) {
+            let prepared;
+            try {
+                prepared = await prepareImage(file.buffer);
+            } catch {
+                await Promise.all(images.map(removeImage));
+                return res.status(400).json({
+                    error: 'Не удалось обработать изображение. Поддерживаются JPEG, PNG, WebP, GIF и AVIF в пределах допустимых размеров.'
+                });
+            }
+            images.push(prepared.image);
+            await saveImage(prepared);
+        }
+
+        newTweet = await Tweet.create({
             author,
             content,
-            hashtags: tags
+            hashtags: tags,
+            image: images.length ? images : null
         });
 
         getIO().emit('tweet:new', newTweet);
         res.status(201).json(newTweet);
     } catch (error) {
+        if (!newTweet) await Promise.all(images.map(removeImage));
         console.error(error);
         res.status(500).json({ error: "Database error while creating tweet" });
     }
@@ -343,6 +451,7 @@ router.delete('/:id', verifyToken, isNotBanned, async (req, res) => {
         }
 
         await tweet.destroy();
+        await Promise.all(postImages(tweet.image).map(removeImage));
         await Comment.deleteMany({ tweetId: tweet.id });
 
         getIO().emit('tweet:delete', { id: tweet.id });

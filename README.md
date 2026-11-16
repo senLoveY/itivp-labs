@@ -182,7 +182,7 @@ npm run dev
 
 ```sh
 cp -n .env.docker.example .env.docker
-# Укажите свой LAB8_JWT_SECRET в .env.docker.
+# Укажите свои LAB8_JWT_SECRET и LAB8_MINIO_PASSWORD в .env.docker.
 docker compose --env-file .env.docker -p lab8 up -d --build
 docker compose --env-file .env.docker -p lab8 ps -a
 ```
@@ -197,3 +197,9 @@ docker compose --env-file .env.docker -p lab8 ps -a
 Для возврата к обычному запуску остановите контейнеры командой `docker compose --env-file .env.docker -p lab8 down`. Данные локальных баз останутся в томах, а обычный запуск снова использует настройки из `.env`.
 
 Настройки контейнеров хранятся в `.env.docker`, который не коммитится. Для пароля PostgreSQL используйте символы, допустимые без кодирования в URL (например, буквы и цифры). Если том PostgreSQL уже создан, изменение пароля в файле не меняет пароль внутри существующей базы.
+
+### Изображения в публикациях
+
+К посту можно прикрепить до четырёх изображений JPEG, PNG, WebP, GIF или AVIF размером до 10 МБ каждое. Сервер уменьшает статичные изображения до 1600 пикселей по длинной стороне и сохраняет их в WebP; анимированный GIF остаётся GIF.
+
+Compose собирает MinIO из исходников. Файлы остаются в томе `minio_data` после `down` без флага `-v`. Сервер создаёт закрытый бакет при первой загрузке, хранит ключи объектов в PostgreSQL и отдаёт каждый файл по `GET /tweets/:id/image?index=0` (нумерация с нуля). Для обычного запуска без Compose настройте `S3_ENDPOINT`, `S3_ACCESS_KEY` и `S3_SECRET_KEY`; текстовые посты работают и без S3.

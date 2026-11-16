@@ -183,7 +183,7 @@ function TweetList({
     window.scrollTo(0, 0);
   }
 
-  async function addTweet(content, hashtags) {
+  async function addTweet(content, hashtags, imageFiles) {
     const data = { content, hashtags };
     const tempId = makeTempId();
     const tempTweet = {
@@ -200,7 +200,14 @@ function TweetList({
     setSending(true);
 
     try {
-      const res = await createTweetAPI(data);
+      let payload = data;
+      if (imageFiles.length) {
+        payload = new FormData();
+        payload.append('content', content);
+        payload.append('hashtags', JSON.stringify(hashtags));
+        imageFiles.forEach(file => payload.append('image', file));
+      }
+      const res = await createTweetAPI(payload);
       clearCache();
       setTweets(prev => prev.map(t => (t.id === tempId ? { ...res.data, liked: false } : t)));
       return true;

@@ -44,6 +44,7 @@ export const loginAPI = (email, password) => api.post('/auth/login', { email, pa
 export const registerAPI = (email, password) => api.post('/auth/register', { email, password });
 
 export const fetchTweetsAPI = (params, signal) => api.get('/tweets', { params, signal });
+export const tweetImageURL = (id, index) => api.getUri({ url: `/tweets/${id}/image`, params: { index } });
 export const createTweetAPI = (data) => api.post('/tweets', data);
 export const updateTweetAPI = (id, data) => api.put(`/tweets/${id}`, data);
 export const deleteTweetAPI = (id) => api.delete(`/tweets/${id}`);
