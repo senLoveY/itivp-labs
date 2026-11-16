@@ -1,8 +1,10 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import CloseIcon from '../components/CloseIcon';
+import useObjectURLs from '../hooks/useObjectURLs';
 import UserAvatar from '../components/UserAvatar';
 
-import TagInput, { collectTags } from './TagInput';
+import TagInput from './TagInput';
+import { collectTags } from './tags';
 
 function TweetForm({ sending, onAdd }) {
   const email = localStorage.getItem('email') || '';
@@ -10,8 +12,8 @@ function TweetForm({ sending, onAdd }) {
   const [text, setText] = useState('');
   const [tags, setTags] = useState([]);
   const [tagDraft, setTagDraft] = useState('');
-  const [imageFiles, setImageFiles] = useState([]);
-  const [previews, setPreviews] = useState([]);
+  const [attachments, setAttachments] = useState([]);
+  const { createURL, releaseURL } = useObjectURLs();
   const [imageError, setImageError] = useState('');
   const imagePicker = useRef(null);
   const composer = useRef(null);
@@ -20,16 +22,10 @@ function TweetForm({ sending, onAdd }) {
   const dragDepth = useRef(0);
   const [draggingImage, setDraggingImage] = useState(false);
 
-  useEffect(() => {
-    const urls = imageFiles.map(file => URL.createObjectURL(file));
-    setPreviews(urls);
-    return () => urls.forEach(url => URL.revokeObjectURL(url));
-  }, [imageFiles]);
-
   function attachImages(fileList) {
     const files = Array.from(fileList);
     if (!files.length) return;
-    if (imageFiles.length + files.length > 4) {
+    if (attachments.length + files.length > 4) {
       setImageError('Можно прикрепить до четырёх изображений.');
       return;
     }
@@ -43,7 +39,8 @@ function TweetForm({ sending, onAdd }) {
       return;
     }
     setImageError('');
-    setImageFiles(current => [...current, ...files]);
+    const added = files.map(file => ({ file, url: createURL(file) }));
+    setAttachments(current => [...current, ...added]);
   }
 
   function selectImages(e) {
@@ -89,13 +86,14 @@ function TweetForm({ sending, onAdd }) {
     setTags([]);
     setTagDraft('');
 
-    const ok = await onAdd(content, hashtags, imageFiles);
+    const ok = await onAdd(content, hashtags, attachments.map(({ file }) => file));
     if (!ok) {
       setText(content);
       setTags(hashtags);
       setOpen(true);
     } else {
-      setImageFiles([]);
+      attachments.forEach(({ url }) => releaseURL(url));
+      setAttachments([]);
       setImageError('');
     }
   }
@@ -172,14 +170,15 @@ function TweetForm({ sending, onAdd }) {
               />
               <TagInput tags={tags} draft={tagDraft} onChange={setTags} onDraftChange={setTagDraft} />
               {imageError && <p className="error" role="alert">{imageError}</p>}
-              {imageFiles.length > 0 && (
+              {attachments.length > 0 && (
                 <div className="post-image-grid">
-                  {imageFiles.map((file, index) => (
-                    <div className="post-image-card" key={index}>
-                      {previews[index] && <img className="post-image-preview" src={previews[index]} alt={file.name} />}
+                  {attachments.map(({ file, url }, index) => (
+                    <div className="post-image-card" key={url}>
+                      <img className="post-image-preview" src={url} alt={file.name} />
                       <button type="button" className="preview-remove centered-close"
                         aria-label={`Убрать изображение ${index + 1}`} onClick={() => {
-                          setImageFiles(files => files.filter((_, i) => i !== index));
+                          releaseURL(url);
+                          setAttachments(current => current.filter(item => item.url !== url));
                           setImageError('');
                         }}><CloseIcon /></button>
                     </div>
@@ -197,7 +196,7 @@ function TweetForm({ sending, onAdd }) {
               <button type="button" className="attachment-button"
                 aria-label="Прикрепить фото"
                 title="Прикрепить фото (до 4, по 10 МБ)"
-                disabled={imageFiles.length >= 4}
+                disabled={attachments.length >= 4}
                 onClick={() => imagePicker.current.click()}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                   strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">

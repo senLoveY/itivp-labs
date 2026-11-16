@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { avatarURL, fetchMyProfileAPI, saveProfileAPI } from '../api';
+import useObjectURLs from '../hooks/useObjectURLs';
 import UserAvatar from '../components/UserAvatar';
 import AvatarEditor, { CameraIcon } from './AvatarEditor';
 
@@ -8,6 +9,7 @@ export default function MyProfilePage({ version, onSaved }) {
   const [status, setStatus] = useState('');
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState('');
+  const { createURL, releaseURL } = useObjectURLs();
   const [remove, setRemove] = useState(false);
   const [photoEditor, setPhotoEditor] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -26,17 +28,15 @@ export default function MyProfilePage({ version, onSaved }) {
     return () => controller.abort();
   }, [attempt]);
 
-  useEffect(() => {
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    setPreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
+  function clearPhotoDraft() {
+    releaseURL(preview);
+    setFile(null);
+    setPreview('');
+  }
 
   function reset() {
     setStatus(profile.status);
-    setFile(null);
-    setPreview('');
+    clearPhotoDraft();
     setRemove(false);
     setError('');
     setEditing(false);
@@ -55,8 +55,7 @@ export default function MyProfilePage({ version, onSaved }) {
       const result = await saveProfileAPI(data);
       setProfile(result.data);
       setStatus(result.data.status);
-      setFile(null);
-      setPreview('');
+      clearPhotoDraft();
       setRemove(false);
       setEditing(false);
       onSaved();
@@ -98,8 +97,7 @@ export default function MyProfilePage({ version, onSaved }) {
             </button>
             {(file || (profile.hasAvatar && !remove)) && <button type="button" disabled={saving} onClick={() => {
               setRemove(!file || !profile.hasAvatar);
-              setFile(null);
-              setPreview('');
+              clearPhotoDraft();
               setError('');
             }}>{file ? 'Убрать выбранное фото' : 'Удалить аватарку'}</button>}
           </div>
@@ -132,7 +130,9 @@ export default function MyProfilePage({ version, onSaved }) {
         onApply={image => {
           setPhotoEditor(false);
           setRemove(false);
+          releaseURL(preview);
           setFile(image);
+          setPreview(createURL(image));
           setEditing(true);
           setError('');
         }} />}

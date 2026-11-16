@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import useObjectURLs from '../hooks/useObjectURLs';
 import CloseIcon from '../components/CloseIcon';
 
 export function CameraIcon() {
@@ -20,7 +21,7 @@ export default function AvatarEditor({ initialURL, onClose, onApply }) {
   const photo = useRef(null);
   const drag = useRef(null);
   const title = useId();
-  const [file, setFile] = useState(null);
+  const { createURL, releaseURL } = useObjectURLs();
   const [url, setURL] = useState('');
   const [size, setSize] = useState(null);
   const [zoom, setZoom] = useState(1);
@@ -39,13 +40,6 @@ export default function AvatarEditor({ initialURL, onClose, onApply }) {
     };
   }, []);
 
-  useEffect(() => {
-    if (!file) return;
-    const objectURL = URL.createObjectURL(file);
-    setURL(objectURL);
-    return () => URL.revokeObjectURL(objectURL);
-  }, [file]);
-
   function choose(next) {
     if (!next || busy) return;
     if (!/\.(jpe?g|png|webp|gif|avif)$/i.test(next.name) && !formats.split(',').includes(next.type)) {
@@ -60,8 +54,8 @@ export default function AvatarEditor({ initialURL, onClose, onApply }) {
     setSize(null);
     setZoom(1);
     setPosition({ x: 0, y: 0 });
-    setURL('');
-    setFile(next);
+    releaseURL(url);
+    setURL(createURL(next));
   }
 
   const width = size ? Math.max(1, size.width / size.height) * zoom : 1;
@@ -138,7 +132,7 @@ export default function AvatarEditor({ initialURL, onClose, onApply }) {
           e.target.value = '';
         }} />
         <button type="button" className="btn-outline avatar-pick" disabled={busy} onClick={() => picker.current.click()}>
-          <CameraIcon /> {file ? 'Выбрать другое фото' : 'Выбрать фото'}
+          <CameraIcon /> {url ? 'Выбрать другое фото' : 'Выбрать фото'}
         </button>
         {size ? <div className="avatar-crop-controls">
           <label>Масштаб <input type="range" min="1" max="3" step="0.01" value={zoom}

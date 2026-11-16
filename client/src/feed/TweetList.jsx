@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { fetchTweetsAPI, createTweetAPI, updateTweetAPI, deleteTweetAPI, likeTweetAPI, fetchCommentCountsAPI, getCurrentUser } from '../api';
 import { getCache, setCache, clearCache } from '../cache';
 import Loader from '../components/Loader';
@@ -40,7 +40,7 @@ function TweetList({
   const requestedCounts = useRef(new Set());
   const liking = useRef(new Set());
 
-  function loadTweets(searchText, signal) {
+  const loadTweets = useCallback((searchText, signal) => {
     const cacheKey = `${author}|${sort}|${searchText}`;
     const cached = getCache(cacheKey);
     if (cached) {
@@ -62,7 +62,7 @@ function TweetList({
         setError(err.response?.data?.error || 'Не удалось загрузить твиты. Сервер недоступен.');
         setLoading(false);
       });
-  }
+  }, [author, sort]);
 
   function loadMore() {
     if (loading || loadingMore || !hasMore) return;
@@ -110,7 +110,7 @@ function TweetList({
       clearTimeout(timer);
       controller.abort();
     };
-  }, [search, sort]);
+  }, [search, loadTweets]);
 
   useEffect(() => {
     if (!notice) return;

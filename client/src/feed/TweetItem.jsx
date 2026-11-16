@@ -1,7 +1,8 @@
 import { useContext, useRef, useState } from 'react';
 import UserAvatar from '../components/UserAvatar';
 import CloseIcon from '../components/CloseIcon';
-import TagInput, { collectTags } from './TagInput';
+import TagInput from './TagInput';
+import { collectTags } from './tags';
 import PostTime from './PostTime';
 import CommentSection from './CommentSection';
 import { HeartIcon, CommentIcon } from '../components/Icons';

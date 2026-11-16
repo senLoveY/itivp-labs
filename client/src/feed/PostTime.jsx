@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { formatPostTime } from './postTime';
+import { formatPostTime } from './formatPostTime';
 
 const PostClock = createContext(null);
 
@@ -15,7 +15,8 @@ export function PostClockProvider({ children }) {
 export default function PostTime({ value, pending }) {
   const now = useContext(PostClock);
   if (pending) return <span className="post-time" role="status">отправляется…</span>;
-  const time = formatPostTime(value, now ?? Date.now());
+  if (now === null) return null;
+  const time = formatPostTime(value, now);
   return time && (
     <time className="post-time" dateTime={time.dateTime} title={time.exact} aria-label={time.exact}>
       {time.label}
