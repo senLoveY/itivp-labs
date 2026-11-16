@@ -54,6 +54,11 @@ function postImages(image) {
  *           minimum: 0
  *           maximum: 3
  *           default: 0
+ *       - in: query
+ *         name: key
+ *         description: Stable key of an image attached to this post. Overrides index.
+ *         schema:
+ *           type: string
  *     responses:
  *       200:
  *         description: Image bytes (WebP or GIF)
@@ -65,7 +70,10 @@ router.get('/:id/image', async (req, res, next) => {
         const tweet = await Tweet.findByPk(req.params.id);
         const index = req.query.index ?? '0';
         if (typeof index !== 'string' || !/^[0-3]$/.test(index)) return res.sendStatus(404);
-        const image = postImages(tweet?.image)[Number(index)];
+        const { key } = req.query;
+        if (key !== undefined && typeof key !== 'string') return res.sendStatus(404);
+        const images = postImages(tweet?.image);
+        const image = key === undefined ? images[Number(index)] : images.find(item => item.key === key);
         if (!image) return res.sendStatus(404);
 
         const object = await readImage(image);
@@ -306,6 +314,13 @@ router.get('/', async (req, res) => {
  *                 items:
  *                   type: string
  *                 example: ["#updated"]
+ *               imageKeys:
+ *                 type: array
+ *                 maxItems: 4
+ *                 uniqueItems: true
+ *                 description: Keys of the existing attachments to keep, in display order. Omit to preserve all images, or send an empty array to remove them.
+ *                 items:
+ *                   type: string
  *     responses:
  *       200:
  *         description: Tweet successfully updated
@@ -405,33 +420,47 @@ router.post('/', verifyToken, isNotBanned, parsePostUpload, async (req, res) => 
 
 router.put('/:id', verifyToken, isNotBanned, async (req, res) => {
     try {
-        const { content, hashtags } = req.body;
-        const tweet = await Tweet.findByPk(req.params.id);
-
-        if (!tweet) {
-            return res.status(404).json({ error: "Tweet not found" });
+        const { content, hashtags, imageKeys } = req.body;
+        if (typeof content !== 'string' || !content.trim()) {
+            return res.status(400).json({ error: "The 'content' field is mandatory for update." });
         }
-
-        if (tweet.author !== req.user.email && req.user.role !== 'admin') {
-            return res.status(403).json({ error: "Access denied. You can only update your own tweets." });
-        }
-
-        if (!content) {
-            return res.status(400).json({ error: "The 'content' field are mandatory for update." });
-        }
-
-        const tags = hashtags === undefined ? tweet.hashtags : normalizeHashtags(hashtags);
+        const tags = hashtags === undefined ? undefined : normalizeHashtags(hashtags);
         if (hashtags !== undefined && !tags) {
             return res.status(400).json({ error: 'Передайте теги массивом строк, по одному тегу в строке.' });
         }
+        if (imageKeys !== undefined && (!Array.isArray(imageKeys) || imageKeys.length > 4 ||
+            imageKeys.some(key => typeof key !== 'string') || new Set(imageKeys).size !== imageKeys.length)) {
+            return res.status(400).json({ error: 'Передайте список ключей фото без повторений.' });
+        }
 
-        await tweet.update({
-            content,
-            hashtags: tags
+        const result = await sequelize.transaction(async transaction => {
+            const tweet = await Tweet.findByPk(req.params.id, { transaction, lock: transaction.LOCK.UPDATE });
+            if (!tweet) return { status: 404, error: 'Tweet not found' };
+            if (tweet.author !== req.user.email && req.user.role !== 'admin') {
+                return { status: 403, error: 'Access denied. You can only update your own tweets.' };
+            }
+
+            const changes = { content };
+            if (tags !== undefined) changes.hashtags = tags;
+            let removed = [];
+            if (imageKeys !== undefined) {
+                const images = postImages(tweet.image);
+                const byKey = new Map(images.map(image => [image.key, image]));
+                if (imageKeys.some(key => !byKey.has(key))) {
+                    return { status: 400, error: 'Одно из фото больше не прикреплено к этому посту.' };
+                }
+                const kept = new Set(imageKeys);
+                removed = images.filter(image => !kept.has(image.key));
+                changes.image = imageKeys.length ? imageKeys.map(key => byKey.get(key)) : null;
+            }
+            await tweet.update(changes, { transaction });
+            return { tweet, removed };
         });
 
-        getIO().emit('tweet:update', tweet);
-        res.status(200).json(tweet);
+        if (result.error) return res.status(result.status).json({ error: result.error });
+        await Promise.all(result.removed.map(removeImage));
+        getIO().emit('tweet:update', result.tweet);
+        res.status(200).json(result.tweet);
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Database error while updating tweet" });

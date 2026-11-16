@@ -3,6 +3,8 @@ import CloseIcon from '../components/CloseIcon';
 import useObjectURLs from '../hooks/useObjectURLs';
 import UserAvatar from '../components/UserAvatar';
 
+import SortablePostImages from './SortablePostImages';
+import { moveItem } from './moveItem';
 import TagInput from './TagInput';
 import { collectTags } from './tags';
 
@@ -170,21 +172,15 @@ function TweetForm({ sending, onAdd }) {
               />
               <TagInput tags={tags} draft={tagDraft} onChange={setTags} onDraftChange={setTagDraft} />
               {imageError && <p className="error" role="alert">{imageError}</p>}
-              {attachments.length > 0 && (
-                <div className="post-image-grid">
-                  {attachments.map(({ file, url }, index) => (
-                    <div className="post-image-card" key={url}>
-                      <img className="post-image-preview" src={url} alt={file.name} />
-                      <button type="button" className="preview-remove centered-close"
-                        aria-label={`Убрать изображение ${index + 1}`} onClick={() => {
-                          releaseURL(url);
-                          setAttachments(current => current.filter(item => item.url !== url));
-                          setImageError('');
-                        }}><CloseIcon /></button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <SortablePostImages
+                items={attachments.map(({ file, url }) => ({ id: url, src: url, alt: file.name }))}
+                onMove={(from, to) => setAttachments(current => moveItem(current, from, to))}
+                onRemove={index => {
+                  const { url } = attachments[index];
+                  releaseURL(url);
+                  setAttachments(current => current.filter(item => item.url !== url));
+                  setImageError('');
+                }} />
             </div>
           </div>
 

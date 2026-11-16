@@ -74,17 +74,17 @@ function PostPage({ tweet: initial, onBack, onTagClick, onAuthorClick }) {
     }
   }
 
-  async function save(id, content, hashtags) {
+  async function save(id, content, hashtags, images) {
     const old = tweet;
-    setTweet(prev => ({ ...prev, content, hashtags }));
+    setTweet(prev => ({ ...prev, content, hashtags, image: images ?? prev.image }));
 
     try {
-      const res = await updateTweetAPI(id, { content, hashtags });
+      const res = await updateTweetAPI(id, { content, hashtags, imageKeys: images?.map(image => image.key) });
       clearCache();
       setTweet(prev => ({ ...res.data, liked: prev.liked }));
     } catch (err) {
       setTweet(old);
-      setNotice('Не удалось изменить твит: ' + errorText(err));
+      throw new Error('Не удалось сохранить публикацию: ' + errorText(err), { cause: err });
     }
   }
 

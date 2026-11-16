@@ -1,8 +1,7 @@
 import { useContext, useRef, useState } from 'react';
 import UserAvatar from '../components/UserAvatar';
 import CloseIcon from '../components/CloseIcon';
-import TagInput from './TagInput';
-import { collectTags } from './tags';
+import EditPostDialog from './EditPostDialog';
 import PostTime from './PostTime';
 import CommentSection from './CommentSection';
 import { HeartIcon, CommentIcon } from '../components/Icons';
@@ -11,9 +10,6 @@ import { OnlineContext } from '../online';
 
 function TweetItem({ tweet, full = false, canChange, commentsCount, onLike, onDelete, onSave, onTagClick, onAuthorClick, onOpenPost }) {
   const [editing, setEditing] = useState(false);
-  const [editText, setEditText] = useState('');
-  const [editTags, setEditTags] = useState([]);
-  const [tagDraft, setTagDraft] = useState('');
   const [showComments, setShowComments] = useState(false);
   const online = useContext(OnlineContext);
   const imageDialog = useRef(null);
@@ -21,6 +17,8 @@ function TweetItem({ tweet, full = false, canChange, commentsCount, onLike, onDe
   const [draggingGallery, setDraggingGallery] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const images = Array.isArray(tweet.image) ? tweet.image : tweet.image ? [tweet.image] : [];
+
+  const visibleImage = Math.min(selectedImage, images.length - 1);
 
   function stepImage(direction) {
     setSelectedImage(index => (index + direction + images.length) % images.length);
@@ -52,19 +50,6 @@ function TweetItem({ tweet, full = false, canChange, commentsCount, onLike, onDe
     setDraggingGallery(false);
   }
 
-  function startEdit() {
-    setEditText(tweet.content);
-    setEditTags(collectTags(tweet.hashtags ?? [], ''));
-    setTagDraft('');
-    setEditing(true);
-  }
-
-  function save() {
-    if (!editText.trim()) return;
-    onSave(tweet.id, editText.trim(), collectTags(editTags, tagDraft));
-    setEditing(false);
-  }
-
   return (
     <div className="tweet">
       <UserAvatar email={tweet.author} className="author-link" onClick={() => onAuthorClick(tweet.author)}>
@@ -77,26 +62,14 @@ function TweetItem({ tweet, full = false, canChange, commentsCount, onLike, onDe
           <PostTime value={tweet.createdAt} pending={tweet.pending} />
         </div>
 
-        {editing ? (
-          <div>
-            <textarea
-              value={editText}
-              onChange={e => setEditText(e.target.value)}
-              rows={3}
-              maxLength={280}
-            />
-            <TagInput tags={editTags} draft={tagDraft} onChange={setEditTags} onDraftChange={setTagDraft} />
-            <button className="btn-main" onClick={save}>Сохранить</button>
-            <button onClick={() => setEditing(false)}>Отмена</button>
-          </div>
-        ) : (
-          <p
-            className={full ? 'tweet-text' : 'tweet-text clickable'}
-            onClick={() => !full && !tweet.pending && onOpenPost?.(tweet)}
-          >
-            {tweet.content}
-          </p>
-        )}
+        <p
+          className={full ? 'tweet-text' : 'tweet-text clickable'}
+          onClick={() => !full && !tweet.pending && onOpenPost?.(tweet)}
+        >
+          {tweet.content}
+        </p>
+        {editing && <EditPostDialog tweet={tweet} images={images} onSave={onSave}
+          onClose={() => setEditing(false)} />}
 
         {images.length > 0 && (
           <>
@@ -118,7 +91,7 @@ function TweetItem({ tweet, full = false, canChange, commentsCount, onLike, onDe
                       setSelectedImage(index);
                       imageDialog.current.showModal();
                     }}>
-                    <img className="post-image" src={tweetImageURL(tweet.id, index)} alt={`Изображение ${index + 1} к публикации`}
+                    <img className="post-image" src={tweetImageURL(tweet.id, index, image.key)} alt={`Изображение ${index + 1} к публикации`}
                       draggable={false} loading="lazy" width={image.width} height={image.height} />
                   </button>
                 ))}
@@ -137,11 +110,11 @@ function TweetItem({ tweet, full = false, canChange, commentsCount, onLike, onDe
                 onClick={() => imageDialog.current.close()}>
                 <CloseIcon />
               </button>
-              <img src={tweetImageURL(tweet.id, selectedImage)} alt={`Изображение ${selectedImage + 1} к публикации`} loading="lazy" />
+              <img src={tweetImageURL(tweet.id, visibleImage, images[visibleImage].key)} alt={`Изображение ${visibleImage + 1} к публикации`} loading="lazy" />
               {images.length > 1 && (
                 <div className="image-gallery-nav">
                   <button type="button" aria-label="Предыдущее изображение" onClick={() => stepImage(-1)}>‹</button>
-                  <span aria-live="polite">{selectedImage + 1} / {images.length}</span>
+                  <span aria-live="polite">{visibleImage + 1} / {images.length}</span>
                   <button type="button" aria-label="Следующее изображение" onClick={() => stepImage(1)}>›</button>
                 </div>
               )}
@@ -149,7 +122,7 @@ function TweetItem({ tweet, full = false, canChange, commentsCount, onLike, onDe
           </>
         )}
 
-        {!editing && tweet.hashtags?.length > 0 && (
+        {tweet.hashtags?.length > 0 && (
           <div className="tags">
             {tweet.hashtags.map(tag => (
               <button type="button" key={tag} className="tag" onClick={() => onTagClick(tag)}>
@@ -179,7 +152,7 @@ function TweetItem({ tweet, full = false, canChange, commentsCount, onLike, onDe
           </button>
           {canChange && (
             <>
-              <button onClick={startEdit} disabled={tweet.pending}>Изменить</button>
+              <button onClick={() => setEditing(true)} disabled={tweet.pending}>Изменить</button>
               <button onClick={() => onDelete(tweet.id)} disabled={tweet.pending}>Удалить</button>
             </>
           )}

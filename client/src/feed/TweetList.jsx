@@ -264,18 +264,18 @@ function TweetList({
     return tweet.author === user?.email || user?.role === 'admin';
   }
 
-  async function saveEdit(id, newContent, hashtags) {
+  async function saveEdit(id, newContent, hashtags, images) {
     const old = tweets.find(t => t.id === id);
 
-    setTweets(prev => prev.map(t => (t.id === id ? { ...t, content: newContent, hashtags } : t)));
+    setTweets(prev => prev.map(t => (t.id === id ? { ...t, content: newContent, hashtags, image: images ?? t.image } : t)));
 
     try {
-      const res = await updateTweetAPI(id, { content: newContent, hashtags });
+      const res = await updateTweetAPI(id, { content: newContent, hashtags, imageKeys: images?.map(image => image.key) });
       clearCache();
       setTweets(prev => prev.map(t => (t.id === id ? { ...res.data, liked: t.liked } : t)));
     } catch (err) {
       setTweets(prev => prev.map(t => (t.id === id ? old : t)));
-      setNotice('Не удалось изменить твит: ' + errorText(err));
+      throw new Error('Не удалось сохранить публикацию: ' + errorText(err), { cause: err });
     }
   }
 
