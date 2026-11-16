@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Sidebar from './components/Sidebar';
 import SearchBar from './components/SearchBar';
 import LoginForm from './auth/LoginForm';
+import { PostClockProvider } from './feed/PostTime';
 import TweetList from './feed/TweetList';
 import AdminPanel from './admin/AdminPanel';
 import StatsPage from './stats/StatsPage';
@@ -146,72 +147,74 @@ function App() {
 
   return (
     <OnlineContext.Provider value={online}>
-      <div className="layout">
-        <Sidebar
-          email={localStorage.getItem('email')}
-          avatarVersion={avatarVersion}
-          isAdmin={isAdmin}
-          page={page}
-          onlineCount={online.size}
-          onChangePage={setPage}
-          onLogout={logout}
-          onToast={showToast}
-        />
+      <PostClockProvider>
+        <div className="layout">
+          <Sidebar
+            email={localStorage.getItem('email')}
+            avatarVersion={avatarVersion}
+            isAdmin={isAdmin}
+            page={page}
+            onlineCount={online.size}
+            onChangePage={setPage}
+            onLogout={logout}
+            onToast={showToast}
+          />
 
-        <main className={['stats', 'admin'].includes(page) ? 'main wide' : 'main'}>
-          <SearchBar value={search} onChange={changeSearch} />
-          {page === 'feed' && (
-            <TweetList
-              key="feed"
-              search={search}
-              onSearchChange={changeSearch}
-              onAuthorClick={openProfile}
-              onOpenPost={openPost}
-            />
-          )}
-          {page === 'profile' && (
-            <TweetList
-              key="profile"
-              author={localStorage.getItem('email')}
-              header={<MyProfilePage version={avatarVersion} onSaved={() => {
-                setAvatarVersion(value => value + 1);
-                showToast('Профиль сохранён');
-              }} />}
-              title="Публикации"
-              showForm={false}
-              showSort
-              search={search}
-              onSearchChange={changeSearch}
-              onAuthorClick={openProfile}
-              onOpenPost={openPost}
-            />
-          )}
-          {page === 'user' && (
-            <UserPage
-              email={profileEmail}
-              search={search}
-              onSearchChange={changeSearch}
-              onBack={() => setPage('feed')}
-              onAuthorClick={openProfile}
-              onOpenPost={openPost}
-            />
-          )}
-          {page === 'post' && post && (
-            <PostPage
-              key={post.id}
-              tweet={post}
-              onBack={closePost}
-              onTagClick={changeSearch}
-              onAuthorClick={openProfile}
-            />
-          )}
-          {page === 'stats' && <StatsPage />}
-          {page === 'admin' && isAdmin && <AdminPanel />}
-        </main>
-      </div>
+          <main className={['stats', 'admin'].includes(page) ? 'main wide' : 'main'}>
+            <SearchBar value={search} onChange={changeSearch} />
+            {page === 'feed' && (
+              <TweetList
+                key="feed"
+                search={search}
+                onSearchChange={changeSearch}
+                onAuthorClick={openProfile}
+                onOpenPost={openPost}
+              />
+            )}
+            {page === 'profile' && (
+              <TweetList
+                key="profile"
+                author={localStorage.getItem('email')}
+                header={<MyProfilePage version={avatarVersion} onSaved={() => {
+                  setAvatarVersion(value => value + 1);
+                  showToast('Профиль сохранён');
+                }} />}
+                title="Публикации"
+                showForm={false}
+                showSort
+                search={search}
+                onSearchChange={changeSearch}
+                onAuthorClick={openProfile}
+                onOpenPost={openPost}
+              />
+            )}
+            {page === 'user' && (
+              <UserPage
+                email={profileEmail}
+                search={search}
+                onSearchChange={changeSearch}
+                onBack={() => setPage('feed')}
+                onAuthorClick={openProfile}
+                onOpenPost={openPost}
+              />
+            )}
+            {page === 'post' && post && (
+              <PostPage
+                key={post.id}
+                tweet={post}
+                onBack={closePost}
+                onTagClick={changeSearch}
+                onAuthorClick={openProfile}
+              />
+            )}
+            {page === 'stats' && <StatsPage />}
+            {page === 'admin' && isAdmin && <AdminPanel />}
+          </main>
+        </div>
 
-      {connectionLost && <div className="connection-lost">Нет соединения с сервером, переподключение…</div>}
-      <Toasts toasts={toasts} />
+        {connectionLost && <div className="connection-lost">Нет соединения с сервером, переподключение…</div>}
+        <Toasts toasts={toasts} />
+      </PostClockProvider>
     </OnlineContext.Provider>
   );
 }

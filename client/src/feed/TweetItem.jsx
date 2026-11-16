@@ -2,6 +2,7 @@ import { useContext, useRef, useState } from 'react';
 import UserAvatar from '../components/UserAvatar';
 import CloseIcon from '../components/CloseIcon';
 import TagInput, { collectTags } from './TagInput';
+import PostTime from './PostTime';
 import CommentSection from './CommentSection';
 import { HeartIcon, CommentIcon } from '../components/Icons';
 import { tweetImageURL } from '../api';
@@ -72,9 +73,7 @@ function TweetItem({ tweet, full = false, canChange, commentsCount, onLike, onDe
       <div className="tweet-body">
         <div className="tweet-top">
           <b className="author-link" onClick={() => onAuthorClick(tweet.author)}>{tweet.author}</b>
-          <span className="hint">
-            {tweet.pending ? 'отправляется...' : new Date(tweet.createdAt).toLocaleString()}
-          </span>
+          <PostTime value={tweet.createdAt} pending={tweet.pending} />
         </div>
 
         {editing ? (

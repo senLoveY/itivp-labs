@@ -387,8 +387,20 @@ a {
 
 .tweet-top {
   display: flex;
-  justify-content: space-between;
-  gap: 8px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 7px;
+}
+
+.post-time {
+  color: #666;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.post-time::before {
+  content: '·';
+  margin-right: 7px;
 }
 
 .tweet-body textarea {
