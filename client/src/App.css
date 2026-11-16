@@ -748,13 +748,53 @@ b.author-link:hover,
 
 .comment-top {
   display: flex;
-  justify-content: space-between;
-  gap: 8px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
 }
 
-.comment-top b {
-  font-size: 13px;
-  word-break: break-all;
+.thread-author {
+  padding: 0;
+  margin: 0;
+  max-width: 100%;
+  color: inherit;
+  text-align: start;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.thread-author:hover {
+  background: transparent;
+  text-decoration: underline;
+}
+
+.thread-entry {
+  position: relative;
+  padding-inline-start: 40px;
+}
+
+.thread-avatar {
+  position: absolute;
+  inset: 0 auto auto 0;
+  padding: 0;
+  margin: 0;
+  border-radius: 50%;
+}
+
+.thread-avatar .avatar {
+  width: 32px;
+  height: 32px;
+}
+
+.thread-root.has-replies::after {
+  content: '';
+  position: absolute;
+  top: 37px;
+  bottom: -10px;
+  left: 15px;
+  width: 2px;
+  background: #dedede;
+  pointer-events: none;
 }
 
 .comment-top .hint {
@@ -787,14 +827,44 @@ b.author-link:hover,
 }
 
 .replies {
-  margin-top: 4px;
-  margin-left: 4px;
-  padding-left: 12px;
-  border-left: 2px solid #eee;
+  margin: 10px 0 0 38px;
 }
 
 .reply {
-  padding: 4px 0;
+  min-height: 32px;
+  padding-bottom: 12px;
+}
+
+.reply::before {
+  content: '';
+  position: absolute;
+  left: -23px;
+  top: 0;
+  width: 18px;
+  height: 16px;
+  border-left: 2px solid #dedede;
+  border-bottom: 2px solid #dedede;
+  border-bottom-left-radius: 12px;
+  pointer-events: none;
+}
+
+.reply:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -23px;
+  width: 2px;
+  background: #dedede;
+  pointer-events: none;
+}
+
+.thread-toggle {
+  margin: 0 0 0 38px;
+  padding: 7px 10px;
+  color: #555;
+  font-size: 13px;
+  text-align: start;
 }
 
 .mention {
@@ -803,7 +873,7 @@ b.author-link:hover,
 }
 
 .reply-form {
-  margin: 6px 0 0 16px;
+  margin: 6px 0 0 40px;
 }
 
 /* страница пользователя */
@@ -1398,14 +1468,13 @@ b.author-link:hover,
 
 .show-all {
   margin: 4px 0 0;
-  padding: 4px 0;
-  color: #1d6fd1;
-  font-size: 14px;
+  padding: 7px 10px;
+  color: #555;
+  font-size: 13px;
 }
 
 .show-all:hover {
-  background: none;
-  text-decoration: underline;
+  color: #111;
 }
 
 .tweet-text.clickable {

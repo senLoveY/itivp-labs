@@ -185,7 +185,6 @@ function CommentSection({ tweetId, full = false, commentsCount = 0, onShowAll, o
           key={comment._id}
           comment={comment}
           repliesLimit={full ? undefined : PREVIEW_REPLIES}
-          onShowAll={onShowAll}
           onChange={replaceComment}
           onDelete={removeComment}
           onAuthorClick={onAuthorClick}

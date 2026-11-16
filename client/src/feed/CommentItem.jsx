@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import {
   updateCommentAPI,
   deleteCommentAPI,
@@ -9,6 +9,8 @@ import {
   deleteReplyAPI,
   getCurrentUser
 } from '../api';
+import UserAvatar from '../components/UserAvatar';
+import PostTime from './PostTime';
 import { HeartIcon } from '../components/Icons';
 
 function repliesWord(n) {
@@ -17,8 +19,27 @@ function repliesWord(n) {
   return 'ответов';
 }
 
-function CommentItem({ comment, repliesLimit, onShowAll, onChange, onDelete, onAuthorClick }) {
+const INITIAL_REPLIES = 2;
+
+function CommentHeader({ author, createdAt, edited, onAuthorClick }) {
+  return (
+    <>
+      <button type="button" className="thread-avatar" onClick={() => onAuthorClick(author)} aria-label={`Профиль: ${author}`}>
+        <UserAvatar email={author} as="span" />
+      </button>
+      <div className="comment-top">
+        <button type="button" className="thread-author" onClick={() => onAuthorClick(author)}>{author}</button>
+        <PostTime value={createdAt} />
+        {edited && <span className="hint">· изменено</span>}
+      </div>
+    </>
+  );
+}
+
+function CommentItem({ comment, repliesLimit, onChange, onDelete, onAuthorClick }) {
   const user = getCurrentUser();
+  const [expanded, setExpanded] = useState(false);
+  const threadId = useId();
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState('');
   const [replying, setReplying] = useState(false);
@@ -30,7 +51,9 @@ function CommentItem({ comment, repliesLimit, onShowAll, onChange, onDelete, onA
   const [error, setError] = useState('');
 
   const canChange = comment.author === user?.email || user?.role === 'admin';
-  const replies = repliesLimit === undefined ? comment.replies : comment.replies.slice(0, repliesLimit);
+  const limit = repliesLimit ?? INITIAL_REPLIES;
+  const replies = expanded ? comment.replies : comment.replies.slice(0, limit);
+  const canToggle = comment.replies.length > limit;
   const hiddenReplies = comment.replies.length - replies.length;
   const liked = comment.likedBy?.includes(user?.email);
 
@@ -94,6 +117,7 @@ function CommentItem({ comment, repliesLimit, onShowAll, onChange, onDelete, onA
         onChange(data);
         setReplyText('');
         setReplying(false);
+        setExpanded(true);
       },
       'Не удалось отправить ответ'
     );
@@ -130,50 +154,48 @@ function CommentItem({ comment, repliesLimit, onShowAll, onChange, onDelete, onA
 
   return (
     <div className="comment">
-      <div className="comment-top">
-        <b className="author-link" onClick={() => onAuthorClick(comment.author)}>{comment.author}</b>
-        <span className="hint">
-          {new Date(comment.createdAt).toLocaleString()}
-          {comment.editHistory.length > 0 && ' · изменено'}
-        </span>
+      <div className={replies.length ? 'thread-entry thread-root has-replies' : 'thread-entry thread-root'}>
+        <CommentHeader author={comment.author} createdAt={comment.createdAt}
+          edited={comment.editHistory.length > 0} onAuthorClick={onAuthorClick} />
+
+        {editing ? (
+          <div>
+            <textarea
+              value={editText}
+              onChange={e => setEditText(e.target.value)}
+              rows={2}
+              maxLength={280}
+              autoFocus
+            />
+            <button className="btn-main" onClick={saveEdit} disabled={busy}>Сохранить</button>
+            <button onClick={() => setEditing(false)}>Отмена</button>
+          </div>
+        ) : (
+          <p className="comment-text">{comment.text}</p>
+        )}
+
+        {!editing && (
+          <div className="comment-buttons">
+            <button className={liked ? 'like-btn liked' : 'like-btn'} onClick={like} disabled={busy}>
+              <HeartIcon />
+              {comment.likes}
+            </button>
+            <button onClick={() => toggleReply()} disabled={busy}>Ответить</button>
+            {canChange && (
+              <>
+                <button onClick={startEdit} disabled={busy}>Изменить</button>
+                <button onClick={remove} disabled={busy}>Удалить</button>
+              </>
+            )}
+          </div>
+        )}
+
+        {error && <p className="error comment-error">{error}</p>}
+
       </div>
 
-      {editing ? (
-        <div>
-          <textarea
-            value={editText}
-            onChange={e => setEditText(e.target.value)}
-            rows={2}
-            maxLength={280}
-            autoFocus
-          />
-          <button className="btn-main" onClick={saveEdit} disabled={busy}>Сохранить</button>
-          <button onClick={() => setEditing(false)}>Отмена</button>
-        </div>
-      ) : (
-        <p className="comment-text">{comment.text}</p>
-      )}
-
-      {!editing && (
-        <div className="comment-buttons">
-          <button className={liked ? 'like-btn liked' : 'like-btn'} onClick={like} disabled={busy}>
-            <HeartIcon />
-            {comment.likes}
-          </button>
-          <button onClick={() => toggleReply()} disabled={busy}>Ответить</button>
-          {canChange && (
-            <>
-              <button onClick={startEdit} disabled={busy}>Изменить</button>
-              <button onClick={remove} disabled={busy}>Удалить</button>
-            </>
-          )}
-        </div>
-      )}
-
-      {error && <p className="error comment-error">{error}</p>}
-
       {replies.length > 0 && (
-        <div className="replies">
+        <div className="replies" id={threadId}>
           {replies.map(reply => {
             const liked = reply.likedBy?.includes(user?.email);
             const canEditReply = reply.author === user?.email || user?.role === 'admin';
@@ -181,10 +203,9 @@ function CommentItem({ comment, repliesLimit, onShowAll, onChange, onDelete, onA
 
             if (reply._id === editingReplyId) {
               return (
-                <div key={reply._id} className="reply">
-                  <div className="comment-top">
-                    <b>{reply.author}</b>
-                  </div>
+                <div key={reply._id} className="reply thread-entry">
+                  <CommentHeader author={reply.author} createdAt={reply.createdAt}
+                    edited={Boolean(reply.editedAt)} onAuthorClick={onAuthorClick} />
                   <textarea
                     value={editReplyText}
                     onChange={e => setEditReplyText(e.target.value)}
@@ -199,14 +220,9 @@ function CommentItem({ comment, repliesLimit, onShowAll, onChange, onDelete, onA
             }
 
             return (
-              <div key={reply._id} className="reply">
-                <div className="comment-top">
-                  <b className="author-link" onClick={() => onAuthorClick(reply.author)}>{reply.author}</b>
-                  <span className="hint">
-                    {new Date(reply.createdAt).toLocaleString()}
-                    {reply.editedAt && ' · изменено'}
-                  </span>
-                </div>
+              <div key={reply._id} className="reply thread-entry">
+                <CommentHeader author={reply.author} createdAt={reply.createdAt}
+                  edited={Boolean(reply.editedAt)} onAuthorClick={onAuthorClick} />
                 <p className="comment-text">
                   {reply.replyTo && (
                     <span className="mention author-link" onClick={() => onAuthorClick(reply.replyTo)}>
@@ -235,12 +251,15 @@ function CommentItem({ comment, repliesLimit, onShowAll, onChange, onDelete, onA
               </div>
             );
           })}
-          {hiddenReplies > 0 && (
-            <button className="show-all" onClick={onShowAll}>
-              Ещё {hiddenReplies} {repliesWord(hiddenReplies)}
-            </button>
-          )}
         </div>
+      )}
+
+      {canToggle && (
+        <button type="button" className="thread-toggle"
+          aria-expanded={expanded} aria-controls={threadId}
+          onClick={() => setExpanded(value => !value)}>
+          {expanded ? 'Свернуть ответы' : `Показать ещё ${hiddenReplies} ${repliesWord(hiddenReplies)}`}
+        </button>
       )}
 
       {replying && (
