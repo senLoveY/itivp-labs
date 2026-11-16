@@ -11,7 +11,13 @@ import {
 } from '../api';
 import { HeartIcon } from '../components/Icons';
 
-function CommentItem({ comment, onChange, onDelete, onCountChange, onAuthorClick }) {
+function repliesWord(n) {
+  if (n % 10 === 1 && n % 100 !== 11) return 'ответ';
+  if ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100)) return 'ответа';
+  return 'ответов';
+}
+
+function CommentItem({ comment, repliesLimit, onShowAll, onChange, onDelete, onAuthorClick }) {
   const user = getCurrentUser();
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState('');
@@ -24,9 +30,10 @@ function CommentItem({ comment, onChange, onDelete, onCountChange, onAuthorClick
   const [error, setError] = useState('');
 
   const canChange = comment.author === user?.email || user?.role === 'admin';
+  const replies = repliesLimit === undefined ? comment.replies : comment.replies.slice(0, repliesLimit);
+  const hiddenReplies = comment.replies.length - replies.length;
   const liked = comment.likedBy?.includes(user?.email);
 
-  // общий обработчик запроса: блокирует кнопки и показывает ошибку
   async function run(request, onSuccess, failText) {
     setBusy(true);
     setError('');
@@ -60,10 +67,7 @@ function CommentItem({ comment, onChange, onDelete, onCountChange, onAuthorClick
   function remove() {
     run(
       () => deleteCommentAPI(comment._id),
-      () => {
-        onDelete(comment._id);
-        onCountChange(n => n - 1 - comment.replies.length);
-      },
+      () => onDelete(comment._id),
       'Не удалось удалить комментарий'
     );
   }
@@ -72,7 +76,6 @@ function CommentItem({ comment, onChange, onDelete, onCountChange, onAuthorClick
     run(() => likeCommentAPI(comment._id), onChange, 'Не удалось поставить лайк');
   }
 
-  // ответ на комментарий (target пустой) или на конкретный ответ — тогда в нём сохраняется адресат
   function toggleReply(target = '') {
     if (replying && replyTo === target) {
       setReplying(false);
@@ -89,7 +92,6 @@ function CommentItem({ comment, onChange, onDelete, onCountChange, onAuthorClick
       () => addReplyAPI(comment._id, replyText.trim(), replyTo || undefined),
       data => {
         onChange(data);
-        onCountChange(n => n + 1);
         setReplyText('');
         setReplying(false);
       },
@@ -121,10 +123,7 @@ function CommentItem({ comment, onChange, onDelete, onCountChange, onAuthorClick
   function removeReply(replyId) {
     run(
       () => deleteReplyAPI(comment._id, replyId),
-      data => {
-        onChange(data);
-        onCountChange(n => n - 1);
-      },
+      data => onChange(data),
       'Не удалось удалить ответ'
     );
   }
@@ -173,9 +172,9 @@ function CommentItem({ comment, onChange, onDelete, onCountChange, onAuthorClick
 
       {error && <p className="error comment-error">{error}</p>}
 
-      {comment.replies.length > 0 && (
+      {replies.length > 0 && (
         <div className="replies">
-          {comment.replies.map(reply => {
+          {replies.map(reply => {
             const liked = reply.likedBy?.includes(user?.email);
             const canEditReply = reply.author === user?.email || user?.role === 'admin';
             const canDelete = reply.author === user?.email || canChange;
@@ -236,6 +235,11 @@ function CommentItem({ comment, onChange, onDelete, onCountChange, onAuthorClick
               </div>
             );
           })}
+          {hiddenReplies > 0 && (
+            <button className="show-all" onClick={onShowAll}>
+              Ещё {hiddenReplies} {repliesWord(hiddenReplies)}
+            </button>
+          )}
         </div>
       )}
 

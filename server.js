@@ -1,4 +1,5 @@
 require('dotenv').config();
+const http = require('http');
 const express = require('express');
 const cors = require('cors');
 const swaggerJsDoc = require('swagger-jsdoc');
@@ -11,7 +12,9 @@ const tweetRoutes = require('./routes/tweets');
 const adminRoutes = require('./routes/admin');
 const userRoutes = require('./routes/users');
 const commentRoutes = require('./routes/comments');
+const notificationRoutes = require('./routes/notifications');
 const connectMongo = require('./config/mongo');
+const { initSocket } = require('./socket');
 
 connectMongo();
 
@@ -27,6 +30,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 app.use('/auth', authRoutes);
 app.use('/tweets', tweetRoutes);
 app.use('/comments', commentRoutes);
+app.use('/notifications', notificationRoutes);
 app.use('/admin', verifyToken, isAdmin, adminRoutes);
 app.use('/', userRoutes);
 
@@ -39,6 +43,9 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: "Server error" });
 });
 
-app.listen(port, () => {
+const server = http.createServer(app);
+initSocket(server);
+
+server.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });

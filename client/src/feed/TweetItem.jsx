@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import CommentSection from './CommentSection';
 import { HeartIcon, CommentIcon } from '../components/Icons';
+import { OnlineContext } from '../online';
 
-function TweetItem({ tweet, canChange, commentsCount, onLike, onDelete, onSave, onTagClick, onAuthorClick, onCommentsCountChange }) {
+function TweetItem({ tweet, full = false, canChange, commentsCount, onLike, onDelete, onSave, onTagClick, onAuthorClick, onOpenPost }) {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState('');
   const [showComments, setShowComments] = useState(false);
+  const online = useContext(OnlineContext);
 
   function startEdit() {
     setEditText(tweet.content);
@@ -22,6 +24,7 @@ function TweetItem({ tweet, canChange, commentsCount, onLike, onDelete, onSave, 
     <div className="tweet">
       <div className="avatar author-link" onClick={() => onAuthorClick(tweet.author)}>
         {tweet.author?.[0]?.toUpperCase()}
+        {online.has(tweet.author) && <span className="online-dot" title="В сети" />}
       </div>
 
       <div className="tweet-body">
@@ -44,7 +47,12 @@ function TweetItem({ tweet, canChange, commentsCount, onLike, onDelete, onSave, 
             <button onClick={() => setEditing(false)}>Отмена</button>
           </div>
         ) : (
-          <p className="tweet-text">{tweet.content}</p>
+          <p
+            className={full ? 'tweet-text' : 'tweet-text clickable'}
+            onClick={() => !full && !tweet.pending && onOpenPost?.(tweet)}
+          >
+            {tweet.content}
+          </p>
         )}
 
         {tweet.hashtags?.length > 0 && (
@@ -67,8 +75,8 @@ function TweetItem({ tweet, canChange, commentsCount, onLike, onDelete, onSave, 
             {tweet.likesCount}
           </button>
           <button
-            className={showComments ? 'comments-btn open' : 'comments-btn'}
-            onClick={() => setShowComments(!showComments)}
+            className={showComments || full ? 'comments-btn open' : 'comments-btn'}
+            onClick={() => !full && setShowComments(!showComments)}
             disabled={tweet.pending}
             title="Комментарии"
           >
@@ -83,10 +91,12 @@ function TweetItem({ tweet, canChange, commentsCount, onLike, onDelete, onSave, 
           )}
         </div>
 
-        {showComments && (
+        {(showComments || full) && (
           <CommentSection
             tweetId={tweet.id}
-            onCountChange={update => onCommentsCountChange(tweet.id, update)}
+            full={full}
+            commentsCount={commentsCount}
+            onShowAll={() => onOpenPost?.(tweet)}
             onAuthorClick={onAuthorClick}
           />
         )}

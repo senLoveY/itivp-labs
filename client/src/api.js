@@ -18,7 +18,10 @@ export function setOnTokenExpired(callback) {
   handleTokenExpired = callback;
 }
 
-// токен истёк или недействителен — выходим из аккаунта
+export function tokenExpired() {
+  handleTokenExpired();
+}
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -31,7 +34,6 @@ api.interceptors.response.use(
   }
 );
 
-// данные пользователя из JWT-токена: { id, email, role }
 export function getCurrentUser() {
   const token = localStorage.getItem('token');
   if (!token) return null;
@@ -57,7 +59,7 @@ export const fetchLogsAPI = (page, search, signal) =>
 export const fetchMyStatsAPI = () => api.get('/stats/me');
 
 export const fetchCommentCountsAPI = (tweetIds) => api.get('/comments/counts', { params: { tweetIds: tweetIds.join(',') } });
-export const fetchCommentsAPI = (tweetId) => api.get('/comments', { params: { tweetId, limit: 100 } });
+export const fetchCommentsAPI = (tweetId, limit, offset = 0) => api.get('/comments', { params: { tweetId, limit, offset } });
 export const createCommentAPI = (tweetId, text) => api.post('/comments', { tweetId, text });
 export const updateCommentAPI = (id, text) => api.put(`/comments/${id}`, { text });
 export const deleteCommentAPI = (id) => api.delete(`/comments/${id}`);
@@ -66,3 +68,6 @@ export const addReplyAPI = (id, text, replyTo) => api.post(`/comments/${id}/repl
 export const updateReplyAPI = (id, replyId, text) => api.put(`/comments/${id}/replies/${replyId}`, { text });
 export const likeReplyAPI = (id, replyId) => api.patch(`/comments/${id}/replies/${replyId}/like`);
 export const deleteReplyAPI = (id, replyId) => api.delete(`/comments/${id}/replies/${replyId}`);
+
+export const fetchNotificationsAPI = () => api.get('/notifications');
+export const readNotificationsAPI = () => api.patch('/notifications/read');

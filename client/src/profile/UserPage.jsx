@@ -1,6 +1,6 @@
 import TweetList from '../feed/TweetList';
 
-function UserPage({ email, search, onSearchChange, onBack, onAuthorClick }) {
+function UserPage({ email, search, onSearchChange, onBack, onAuthorClick, onOpenPost }) {
   const header = (
     <div className="profile">
       <button onClick={onBack}>← Назад</button>
@@ -24,6 +24,7 @@ function UserPage({ email, search, onSearchChange, onBack, onAuthorClick }) {
       search={search}
       onSearchChange={onSearchChange}
       onAuthorClick={onAuthorClick}
+      onOpenPost={onOpenPost}
     />
   );
 }
