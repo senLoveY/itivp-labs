@@ -219,7 +219,6 @@ router.get('/', async (req, res) => {
         } : {};
 
         if (search.startsWith('#') && search.length > 1 && !/\s/u.test(search)) {
-            // Search for a whole JSON string, including its quotes, even in older posts.
             const tag = JSON.stringify(search.toLowerCase().normalize('NFC'));
             whereClause = {
                 [Op.and]: sequelize.where(
