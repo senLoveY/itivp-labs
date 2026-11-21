@@ -5,7 +5,12 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "start:pz22": "node --env-file=.env.pz22 server.js",
+    "dev:pz22": "node --env-file=.env.pz22 node_modules/nodemon/bin/nodemon.js server.js",
+    "db:migrate:pz22": "node --env-file=.env.pz22 node_modules/sequelize-cli/lib/sequelize db:migrate --env pz22",
+    "db:status:pz22": "node --env-file=.env.pz22 node_modules/sequelize-cli/lib/sequelize db:migrate:status --env pz22",
+    "test:pz22": "node --env-file=.env.pz22 --test test/api.test.js"
   },
   "keywords": [],
   "author": "",

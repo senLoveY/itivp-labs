@@ -7,27 +7,13 @@ const { Tweet, User, LoginLog, RequestLog  } = require('./models');
 const authRoutes = require('./routes/auth');
 const { verifyToken, isAdmin, isNotBanned } = require('./middleware/auth');
 
-const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 
-const limits = require('./limits.json');
-
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
-const fakeWebAuth = (req, res, next) => {
-    const hasDemoCookie = (req.headers.cookie || '').split(';').some(cookie => cookie.trim() === 'demoWebAuth=1');
-    const isAuthenticated = req.query.auth === '1' || (req.query.auth !== '0' && hasDemoCookie);
-    const options = { httpOnly: true, sameSite: 'lax', path: '/' };
-
-    if (req.query.auth === '0') res.clearCookie('demoWebAuth', options);
-    if (req.query.auth === '1') res.cookie('demoWebAuth', '1', options);
-
-    req.fakeUser = { name: isAuthenticated ? 'Admin' : 'Guest', isAuthenticated };
-    next();
-};
-
-app.use(fakeWebAuth);
+// API parses its own JSON and always returns JSON errors, independently of EJS.
+app.use('/api', require('./routes/api'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -43,9 +29,6 @@ const logRequest = (req) => RequestLog.create({
 });
 
 const dbLogger = async (req, res, next) => {
-    // POST /add writes its required log after validating the form.
-    if (req.method === 'POST' && /^\/add\/?$/i.test(req.path)) return next();
-
     try {
         await logRequest(req);
     } catch (error) {
@@ -55,32 +38,12 @@ const dbLogger = async (req, res, next) => {
 };
 app.use(dbLogger);
 
-const swaggerOptions = {
-    swaggerDefinition: {
-        openapi: '3.0.0',
-        info: {
-            title: 'Microblogging API',
-            version: '1.0.0',
-            description: 'API documentation for the microblogging platform.'
-        },
-        servers: [
-            { url: 'http://localhost:3000' }
-        ],
-        components: {
-            securitySchemes: {
-                bearerAuth: {
-                    type: 'http',
-                    scheme: 'bearer',
-                    bearerFormat: 'JWT',
-                }
-            }
-        },
-        security: [{ bearerAuth: [] }] 
-    },
-    apis: ['./server.js', './routes/*.js'], 
+// A single specification for PZ2: no duplicate legacy CRUD routes.
+const swaggerDocs = {
+    ...require('./openapi.pz22.json'),
+    servers: [{ url: 'http://localhost:' + port }]
 };
-
-const swaggerDocs = swaggerJsDoc(swaggerOptions);
+app.get('/openapi.json', (req, res) => res.json(swaggerDocs));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 app.use('/auth', authRoutes);
@@ -509,75 +472,26 @@ app.delete('/tweets/:id', verifyToken, isNotBanned, async (req, res) => {
     }
 });
 
-app.get('/', async (req, res, next) => {
-    try {
-        const tweets = await Tweet.findAll({ order: [['createdAt', 'DESC']] });
-        res.render('index', { title: 'Лента твитов', tweets, user: req.fakeUser });
-    } catch (error) {
-        next(error);
-    }
+app.get('/login', (req, res) => {
+    res.render('login', { title: 'Вход', authPage: true });
+});
+
+app.get('/api-ui', (req, res) => res.redirect('/'));
+
+app.get('/', (req, res) => {
+    res.render('api', { title: 'Лента' });
 });
 
 app.get('/item/:id', async (req, res, next) => {
     try {
         const tweet = await Tweet.findByPk(req.params.id);
         if (!tweet) return next();
-        res.render('item', { title: `Твит от ${tweet.author}`, tweet, user: req.fakeUser });
-    } catch (error) {
-        next(error);
-    }
+        res.render('item', { title: 'Публикация', tweet });
+    } catch (error) { next(error); }
 });
 
-const renderAddForm = (res, user, form = { author: user.name, content: '' }, error = null) =>
-    res.render('add', { title: 'Добавить твит', user, limits, form, error });
-
-app.get('/add', (req, res) => {
-    if (!req.fakeUser.isAuthenticated) {
-        return res.send('<h3 style="text-align:center; margin-top:50px;">Доступ запрещен. <a href="/?auth=1">Войти как Администратор</a></h3>');
-    }
-    renderAddForm(res, req.fakeUser);
-});
-
-app.post('/add', async (req, res, next) => {
-    try {
-
-        const form = {
-            author: req.body.author || '',
-            content: req.body.content || ''
-        };
-        const author = form.author.trim();
-        const content = form.content.trim();
-
-        if (author.length < limits.author.minLength || author.length > limits.author.maxLength) {
-            throw new Error(`Имя автора не может состоять только из пробелов и должно быть от ${limits.author.minLength} до ${limits.author.maxLength} символов.`);
-        }
-
-        if (content.length < limits.content.minLength || content.length > limits.content.maxLength) {
-            throw new Error(`Текст поста не может быть пустым (или состоять из одних пробелов). Длина: от ${limits.content.minLength} до ${limits.content.maxLength} символов.`);
-        }
-
-        if (content.toLowerCase() === 'ошибка') {
-            throw new Error("Имитация непредвиденного критического сбоя сервера!");
-        }
-
-        try {
-            await logRequest(req);
-        } catch (error) {
-            console.error('Не удалось записать запрос на добавление поста:', error.message);
-            const message = 'Не удалось добавить пост: журнал запросов временно недоступен.';
-            if (req.accepts(['html', 'json']) === 'json') {
-                return res.status(503).json({ error: message });
-            }
-            return renderAddForm(res.status(503), req.fakeUser, form, message);
-        }
-
-        await Tweet.create({ author, content, hashtags: [] });
-        
-        res.redirect('/?auth=1');
-    } catch (error) {
-        next(error);
-    }
-});
+app.get('/add', (req, res) => res.redirect('/'));
+app.post('/add', (req, res) => res.status(410).json({ error: 'Используйте POST /api/tweets с JWT.' }));
 
 app.get('/500-demo', (req, res, next) => {
     next(new Error("Демонстрация работы middleware для перехвата 500 ошибки!"));
@@ -585,7 +499,7 @@ app.get('/500-demo', (req, res, next) => {
 
 app.use((req, res) => {
     if (req.accepts('html')) {
-        res.status(404).render('404', { title: 'Страница не найдена', user: req.fakeUser });
+        res.status(404).render('404', { title: 'Страница не найдена' });
     } else {
         res.status(404).json({ error: "Route not found" });
     }
@@ -604,12 +518,16 @@ app.use(async (err, req, res, next) => {
     }
 
     if (req.accepts('html')) {
-        res.status(500).render('500', { title: 'Ошибка сервера', error: err.message, user: req.fakeUser || { name: 'Guest', isAuthenticated: false } });
+        res.status(500).render('500', { title: 'Ошибка сервера', error: err.message });
     } else {
         res.status(500).json({ error: "Server error" });
     }
 });
 
-app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
-});
+if (require.main === module) {
+    app.listen(port, () => {
+        console.log(`Server is running on http://localhost:${port}`);
+    });
+}
+
+module.exports = app;

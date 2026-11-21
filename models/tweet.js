@@ -10,7 +10,7 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      // define association here
+      Tweet.hasMany(models.Comment, { foreignKey: 'tweetId', as: 'comments' });
     }
   }
   Tweet.init({

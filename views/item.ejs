@@ -3,5 +3,17 @@
     <p><%= tweet.content %></p>
     <small>ID: <%= tweet.id %></small>
     <br><br>
-    <a href="/<%= user.isAuthenticated ? '?auth=1' : '' %>">← Назад</a>
+    <a href="/">← Назад</a>
 </div>
+<section class="api-comments" data-tweet-id="<%= tweet.id %>">
+    <h2>Комментарии</h2>
+    <p class="api-message" role="status"></p>
+    <div class="api-comment-list"></div>
+    <form class="api-comment-form" hidden>
+        <label>Ваш комментарий
+            <textarea name="text" rows="3" maxlength="280" required></textarea>
+        </label>
+        <button type="submit">Отправить</button>
+    </form>
+    <p class="api-login-hint">Войдите, чтобы написать комментарий.</p>
+</section>

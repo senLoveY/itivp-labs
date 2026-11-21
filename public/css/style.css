@@ -1,7 +1,49 @@
-body { font-family: Arial; background: #f4f8fa; margin: 0; }
-header { background: #1da1f2; color: white; padding: 15px; position: sticky; top: 0; z-index: 1000;}
-header a { color: white; text-decoration: none; margin-right: 15px; }
-main { max-width: 600px; margin: 20px auto; background: white; padding: 20px; border-radius: 8px; }
-.tweet-card { border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; }
-input, textarea { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; resize: vertical;}
-.tweet-card p {white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; line-height: 1.5;}
+* { box-sizing: border-box; }
+:root { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; color: #252525; background: #f5f5f5; font-size: 15px; line-height: 1.5; }
+body { margin: 0; }
+header { background: #fff; border-bottom: 1px solid #e5e5e5; position: sticky; top: 0; z-index: 10; }
+.app-nav { max-width: 800px; margin: auto; padding: 14px 22px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { color: #222; font-weight: 750; font-size: 21px; text-decoration: none; letter-spacing: -.5px; }
+main { max-width: 680px; margin: 24px auto; padding: 0 18px 40px; }
+button, input, textarea { font: inherit; }
+button { cursor: pointer; border: 1px solid #ddd; background: #fff; color: #444; border-radius: 9px; padding: 9px 14px; }
+button:hover { background: #eee; }
+button:disabled { cursor: default; opacity: .55; }
+button.primary, .api-editor button[type=submit], .api-comment-form button[type=submit] { background: #242424; color: #fff; border-color: #242424; }
+button.primary:hover { background: #444; }
+a { color: #444; text-underline-offset: 3px; }
+label { display: block; font-size: 14px; font-weight: 600; }
+input, textarea { display: block; width: 100%; margin-top: 6px; padding: 11px 12px; color: #222; background: #fafafa; border: 1px solid #ddd; border-radius: 9px; }
+textarea { resize: vertical; min-height: 90px; }
+input:focus, textarea:focus { outline: 2px solid #888; outline-offset: 1px; }
+button:focus-visible, a:focus-visible { outline: 2px solid #666; outline-offset: 3px; }
+.api-hint { color: #777; font-size: 13px; font-weight: 400; }
+.api-message { color: #9b3333; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.api-message:empty { display: none; }
+#api-account { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.account-email { color: #666; font-size: 13px; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+.auth-page { min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px; }
+.auth-page main { width: 100%; max-width: 420px; padding: 0; margin: 0; }
+.auth-card { background: #fff; padding: 30px; border: 1px solid #e6e6e6; border-radius: 18px; box-shadow: 0 8px 28px rgb(0 0 0 / 4%); }
+.auth-card .brand { display: inline-block; margin-bottom: 22px; }
+.auth-card #api-account { display: block; }
+.auth-card h1 { margin: 0 0 8px; font-size: 24px; letter-spacing: -.6px; }
+.auth-card form { display: grid; gap: 15px; margin-top: 24px; }
+.auth-card .auth-switch { width: 100%; border: none; background: transparent; margin-top: 12px; color: #666; }
+.page-title { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; margin-bottom: 18px; gap: 8px; }
+.page-title h1 { font-size: 23px; margin: 0; }
+.compose-form, .tweet-card, .api-comments { background: #fff; border: 1px solid #e4e4e4; border-radius: 13px; padding: 18px; margin-bottom: 14px; }
+.compose-form { display: grid; gap: 12px; }
+.compose-form button { justify-self: end; }
+.tweet-card p { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
+.tweet-card strong { overflow-wrap: anywhere; }
+.tweet-card button { margin: 10px 6px 0 0; font-size: 13px; }
+.tweet-card small { display: block; color: #888; }
+#api-tweet-list a { display: inline-block; margin: 12px 12px 0 0; font-size: 13px; }
+.api-editor { display: grid; gap: 10px; margin-top: 16px; border-top: 1px solid #eee; padding-top: 14px; }
+.api-comment-form { display: grid; gap: 10px; }
+.api-comment-form button { justify-self: end; }
+.api-comments h2 { font-size: 19px; margin: 0 0 16px; }
+.api-comment-list .tweet-card { padding: 14px 0; border: 0; border-bottom: 1px solid #eee; border-radius: 0; }
+[hidden] { display: none !important; }
+@media(max-width: 500px) { .app-nav { padding: 12px 16px; } .account-email { max-width: 110px; } .auth-card { padding: 24px; } main { margin-top: 16px; } }

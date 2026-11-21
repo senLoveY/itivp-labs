@@ -4,6 +4,6 @@
         <strong>@<%= tweet.author %></strong>
         <p><%= tweet.content %></p>
         <small><%= tweet.createdAt %></small><br>
-        <a href="/item/<%= tweet.id %><%= user.isAuthenticated ? '?auth=1' : '' %>">Подробнее...</a>
+        <a href="/item/<%= tweet.id %>">Подробнее...</a>
     </div>
 <% }) %>

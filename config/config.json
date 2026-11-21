@@ -22,5 +22,9 @@
         "rejectUnauthorized": false
       }
     }
+  },
+  "pz22": {
+    "use_env_variable": "DATABASE_URL",
+    "dialect": "postgres"
   }
 }

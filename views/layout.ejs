@@ -2,22 +2,20 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title><%= title %></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><%= title %> · Микроблог</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
-<body>
-    <header>
-        <h1>Микроблог</h1>
-        <nav>
-            <a href="/<%= user.isAuthenticated ? '?auth=1' : '' %>">Лента</a>
-            <% if (user.isAuthenticated) { %>
-                <a href="/add?auth=1">Написать твит</a>
-                <span style="margin-left: 20px;">Привет, <%= user.name %>! <a href="/?auth=0">Выйти</a></span>
-            <% } else { %>
-                <a href="/?auth=1">Войти (auth=1)</a>
-            <% } %>
-        </nav>
-    </header>
+<body class="<%= typeof authPage !== 'undefined' && authPage ? 'auth-page' : 'app-page' %>">
+    <% if (typeof authPage === 'undefined' || !authPage) { %>
+        <header>
+            <nav class="app-nav">
+                <a class="brand" href="/">Микроблог</a>
+                <div id="api-account" aria-label="Аккаунт"></div>
+            </nav>
+        </header>
+    <% } %>
     <main><%- body %></main>
+    <script src="/js/api-ui.js" defer></script>
 </body>
 </html>
